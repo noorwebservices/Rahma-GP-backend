@@ -12,13 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
-            $table->timestamps();
+            $table->id(); // id
+            $table->string('nom'); // nom
+            $table->string('prenom'); // prenom
+            $table->string('telephone')->unique(); // telephone (unique pour la connexion)
+            $table->string('email')->unique(); // email (unique pour la connexion)
+            $table->string('avatar')->nullable(); // avatar (chemin de l'image, nullable)
+            $table->text('adresse')->nullable(); // adresse (text si longue, nullable)
+            
+            // statut : enum( actif , inactif ,suspendu ) avec 'actif' par défaut
+            $table->enum('statut', ['actif', 'inactif', 'suspendu'])->default('actif'); 
+            
+            $table->string('mot_de_passe'); // mot_de_passe
+            $table->timestamp('dernier_connexion')->nullable(); // dernier_connexion (date/heure, nullable)
+            
+            $table->rememberToken(); // Requis par Laravel pour "se souvenir de moi"
+            $table->timestamps(); // créé_le et modifié_le (created_at, updated_at)
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
