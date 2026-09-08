@@ -12,7 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('messages', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
+            $table->uuid('reservation_id');
+            $table->foreign('reservation_id')->references('id')->on('reservations')->unique()->onDelete('cascade');
+            $table->foreignUuid('expediteur_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('destinataire_id')->constrained('users')->cascadeOnDelete();
+            $table->text('contenu');
+            $table->string('piece_jointe')->nullable();
+            $table->boolean('est_lu')->default(false);
+            $table->dateTime('date_heure_envoi');
+            $table->dateTime('date_heure_lecture')->nullable();
             $table->timestamps();
         });
     }

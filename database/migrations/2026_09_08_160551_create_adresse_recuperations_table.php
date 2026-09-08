@@ -12,7 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('adresse_recuperations', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
+            $table->string('adresse');
+            $table->string('ville');
+            $table->string('pays');
+            $table->string('horaire_ouverture')->nullable();
+            $table->text('instructions')->nullable();
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
             $table->timestamps();
         });
     }

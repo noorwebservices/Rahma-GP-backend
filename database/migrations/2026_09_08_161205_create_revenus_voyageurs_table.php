@@ -12,7 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('revenus_voyageurs', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary(); // id (UUID)
+            $table->uuid('voyageur_id');
+            $table->foreign('voyageur_id')->references('id')->on('voyageurs')->onDelete('cascade');
+            $table->uuid('reservation_id');
+            $table->foreign('reservation_id')->references('id')->on('reservations')->unique()->onDelete('cascade');
+            $table->decimal('montant', 10, 2);
+            $table->enum('statut', ['en_attente', 'disponible', 'retire'])->default('en_attente');
             $table->timestamps();
         });
     }

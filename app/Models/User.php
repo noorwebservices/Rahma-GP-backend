@@ -2,23 +2,30 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Tymon\JWTAuth\Contracts\JWTSubject; // Import du contrat JWT
 
-#[Fillable(['nom', 'prenom', 'telephone', 'email', 'avatar', 'adresse', 'statut', 'mot_de_passe', 'dernier_connexion'])]
-#[Hidden(['mot_de_passe', 'remember_token'])]
+
+
 
 // Correction : Il faut ajouter "implements JWTSubject" ici
 class User extends Authenticatable implements JWTSubject
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+
+    use HasFactory, Notifiable, HasRoles, HasUuids;
+
+    protected $guarded = [];
+
+    protected $hidden = [
+        'mot_de_passe',
+        'remember_token',
+    ];
 
     /**
      * Requis par Laravel Auth car votre champ s'appelle "mot_de_passe" et non "password"
@@ -40,6 +47,64 @@ class User extends Authenticatable implements JWTSubject
         ];
     }
 
+    // --- Relations 1-1 vers les profils métier ---
+
+    //relation avec le profil Client.
+    public function client(): HasOne
+    {
+        return $this->hasOne(Client::class);
+    }
+ 
+    //relation avec le profil Voyageur; 
+    public function voyageur(): HasOne
+    {
+        return $this->hasOne(Voyageur::class);
+    }
+
+     // --- Relations vers les tables qui référencent un utilisateur ---
+ 
+     //une notification appartient à un utilisateur. un utilisateur peut avoir plusieurs notifications.
+     public function Notifications(): HasMany
+     {
+         return $this->hasMany(Notification::class);
+     }
+  
+     //un message appartient à un utilisateur. un utilisateur peut avoir plusieurs messages envoyés et reçus.
+     public function messagesEnvoyes(): HasMany
+     {
+         return $this->hasMany(Message::class, 'expediteur_id');
+     }
+  
+     //un message appartient à un utilisateur. un utilisateur peut avoir plusieurs messages envoyés et reçus.
+     public function messagesRecus(): HasMany
+     {
+         return $this->hasMany(Message::class, 'destinataire_id');
+     }
+  
+     //une evaluation appartient à un utilisateur. un utilisateur peut avoir plusieurs evaluations.
+     public function evaluationsDonnees(): HasMany
+     {
+         return $this->hasMany(Evaluation::class, 'evaluateur_id');
+     }
+  
+     //une evaluation appartient à un utilisateur. un utilisateur peut avoir plusieurs evaluations.
+     public function evaluationsRecues(): HasMany
+     {
+         return $this->hasMany(Evaluation::class, 'evalue_id');
+     }
+  
+     // un utitilisateur peut mettre à jour plusieurs suivis de colis.
+     public function suiviColisEffectues(): HasMany
+     {
+         return $this->hasMany(Suivi_colis::class, 'mis_a_jour_par');
+     }
+  
+     // un utitilisateur peut confirmer plusieurs paiements.
+     public function paiementsConfirmes(): HasMany
+     {
+         return $this->hasMany(Paiement::class, 'confirme_par');
+     }
+  
     /**
      * Méthodes JWT de Tymon
      */

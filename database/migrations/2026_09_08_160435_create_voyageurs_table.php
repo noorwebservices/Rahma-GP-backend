@@ -12,7 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('voyageurs', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary(); // id (UUID)
+            $table->uuid('user_id');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade'); // Foreign key constraint
+            $table->enum('type_piece', ['cni', 'passport'])->default('cni'); 
+            $table->string('numero_piece')->nullable();
+            $table->string('cni_recto')->nullable();
+            $table->string('cni_verso')->nullable();
+            $table->boolean('mode_client')->default(true); // true = mode client, false = mode voyageur
+            $table->enum('statut', ['en_attente', 'verifie', 'refuse'])->default('en_attente');
             $table->timestamps();
         });
     }
