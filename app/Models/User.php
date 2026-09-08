@@ -64,7 +64,7 @@ class User extends Authenticatable implements JWTSubject
      // --- Relations vers les tables qui référencent un utilisateur ---
  
      //une notification appartient à un utilisateur. un utilisateur peut avoir plusieurs notifications.
-     public function Notifications(): HasMany
+     public function notifications(): HasMany
      {
          return $this->hasMany(Notification::class);
      }

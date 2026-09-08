@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('paiements', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('reservation_id');
-            $table->foreign('reservation_id')->references('id')->on('reservations')->unique()->onDelete('cascade');
+            $table->foreignUuid('reservation_id')->unique()->constrained('reservations')->cascadeOnDelete();
             $table->decimal('montant', 10, 2);
             $table->string('reference')->nullable();
             $table->enum('mode_paiement', ['wave', 'espece_depot', 'livraison']);

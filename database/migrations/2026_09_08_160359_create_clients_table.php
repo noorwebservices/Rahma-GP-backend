@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->uuid('id')->primary(); // id (UUID)
-            $table->uuid('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreignUuid('user_id')->unique()->constrained('users')->cascadeOnDelete();
             $table->timestamps();
         });
     }

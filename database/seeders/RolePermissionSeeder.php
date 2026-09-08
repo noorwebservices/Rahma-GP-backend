@@ -36,6 +36,7 @@ class RolePermissionSeeder extends Seeder
 
             'profil.voir',
             'profil.modifier',
+            'mode.basculer',
 
             // -----------------------------------------------------------------
             // Voyages

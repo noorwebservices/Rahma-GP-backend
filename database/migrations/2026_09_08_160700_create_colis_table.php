@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('colis', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('reservation_id');
-            $table->foreign('reservation_id')->references('id')->on('reservations')->unique()->onDelete('cascade');
+            $table->foreignUuid('reservation_id')->unique()->constrained('reservations')->cascadeOnDelete();
             $table->string('numero_suivi')->unique();
             $table->string('type');
             $table->string('photo')->nullable();

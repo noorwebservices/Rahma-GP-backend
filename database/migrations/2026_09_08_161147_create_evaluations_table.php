@@ -15,11 +15,12 @@ return new class extends Migration
             $table->uuid('id')->primary(); // id (UUID)
             $table->foreignUuid('evaluateur_id')->constrained('users')->cascadeOnDelete();
             $table->foreignUuid('evalue_id')->constrained('users')->cascadeOnDelete();
-            $table->uuid('reservation_id');
-            $table->foreign('reservation_id')->references('id')->on('reservations')->unique()->onDelete('cascade');
+            $table->foreignUuid('reservation_id')->constrained('reservations')->cascadeOnDelete();
             $table->unsignedTinyInteger('note'); // 1 à 5 par exemple, à valider côté FormRequest
             $table->text('commentaire')->nullable();
             $table->timestamps();
+
+            $table->unique(['reservation_id', 'evaluateur_id']);
         });
     }
 

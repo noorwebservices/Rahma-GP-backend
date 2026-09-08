@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('voyageurs', function (Blueprint $table) {
             $table->uuid('id')->primary(); // id (UUID)
-            $table->uuid('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade'); // Foreign key constraint
+            $table->foreignUuid('user_id')->unique()->constrained('users')->cascadeOnDelete();
             $table->enum('type_piece', ['cni', 'passport'])->default('cni'); 
             $table->string('numero_piece')->nullable();
             $table->string('cni_recto')->nullable();
