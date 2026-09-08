@@ -22,7 +22,7 @@ class ProfileController extends Controller
     {
         /** @var User $user */
         $user = auth('api')->user();
-        $user->load(['client', 'voyageur', 'roles', 'permissions']);
+        $user->load(['client', 'voyageur', 'roles']);
 
         return response()->json([
             'status' => 'success',
@@ -31,7 +31,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Mettre à jour les informations du profil utilisateur.
+     * Mettre à jour les informations du profil utilisateur (support fichiers et texte pour avatar).
      */
     public function update(UpdateProfileRequest $request): JsonResponse
     {
@@ -39,17 +39,24 @@ class ProfileController extends Controller
         $user = auth('api')->user();
         $validated = $request->validated();
 
+        $avatarPath = $user->avatar;
+        if ($request->hasFile('avatar')) {
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+        } elseif (array_key_exists('avatar', $validated) && is_string($validated['avatar'])) {
+            $avatarPath = $validated['avatar'];
+        }
+
         $user->update(array_filter([
             'nom' => $validated['nom'] ?? $user->nom,
             'prenom' => $validated['prenom'] ?? $user->prenom,
             'email' => $validated['email'] ?? $user->email,
             'telephone' => $validated['telephone'] ?? $user->telephone,
             'adresse' => array_key_exists('adresse', $validated) ? $validated['adresse'] : $user->adresse,
-            'avatar' => array_key_exists('avatar', $validated) ? $validated['avatar'] : $user->avatar,
+            'avatar' => $avatarPath,
             'mot_de_passe' => !empty($validated['mot_de_passe']) ? $validated['mot_de_passe'] : null,
         ], fn ($value) => $value !== null));
 
-        $user->load(['client', 'voyageur', 'roles', 'permissions']);
+        $user->load(['client', 'voyageur', 'roles']);
 
         return response()->json([
             'status' => 'success',
@@ -85,7 +92,7 @@ class ProfileController extends Controller
             ]);
         });
 
-        $user->load(['client', 'voyageur', 'roles', 'permissions']);
+        $user->load(['client', 'voyageur', 'roles']);
 
         return response()->json([
             'status' => 'success',
@@ -96,7 +103,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Créer le profil Voyageur pour l'utilisateur connecté et attribuer le rôle "voyageur".
+     * Créer le profil Voyageur (support fichiers image/PDF pour cni_recto et cni_verso).
      */
     public function createVoyageurProfile(CreateVoyageurProfileRequest $request): JsonResponse
     {
@@ -104,7 +111,21 @@ class ProfileController extends Controller
         $user = auth('api')->user();
         $validated = $request->validated();
 
-        $voyageur = DB::transaction(function () use ($user, $validated) {
+        $cniRectoPath = null;
+        if ($request->hasFile('cni_recto')) {
+            $cniRectoPath = $request->file('cni_recto')->store('cni', 'public');
+        } elseif (isset($validated['cni_recto']) && is_string($validated['cni_recto'])) {
+            $cniRectoPath = $validated['cni_recto'];
+        }
+
+        $cniVersoPath = null;
+        if ($request->hasFile('cni_verso')) {
+            $cniVersoPath = $request->file('cni_verso')->store('cni', 'public');
+        } elseif (isset($validated['cni_verso']) && is_string($validated['cni_verso'])) {
+            $cniVersoPath = $validated['cni_verso'];
+        }
+
+        $voyageur = DB::transaction(function () use ($user, $validated, $cniRectoPath, $cniVersoPath) {
             Role::firstOrCreate(['name' => 'voyageur', 'guard_name' => 'api']);
             if (!$user->hasRole('voyageur', 'api')) {
                 $user->assignRole(Role::findByName('voyageur', 'api'));
@@ -115,15 +136,15 @@ class ProfileController extends Controller
                 [
                     'type_piece' => $validated['type_piece'],
                     'numero_piece' => $validated['numero_piece'] ?? null,
-                    'cni_recto' => $validated['cni_recto'] ?? null,
-                    'cni_verso' => $validated['cni_verso'] ?? null,
+                    'cni_recto' => $cniRectoPath,
+                    'cni_verso' => $cniVersoPath,
                     'mode_client' => $validated['mode_client'] ?? true,
                     'statut' => 'en_attente',
                 ]
             );
         });
 
-        $user->load(['client', 'voyageur', 'roles', 'permissions']);
+        $user->load(['client', 'voyageur', 'roles']);
 
         return response()->json([
             'status' => 'success',
@@ -134,7 +155,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Basculer en mode Client <-> mode Voyageur pour l'utilisateur ayant le profil Voyageur.
+     * Basculer en mode Client <-> mode Voyageur.
      */
     public function toggleMode(): JsonResponse
     {
@@ -163,7 +184,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Formater les données de réponse utilisateur.
+     * Formater les données de réponse utilisateur sans les permissions.
      */
     protected function formatUserResponse(User $user): array
     {
@@ -178,7 +199,6 @@ class ProfileController extends Controller
             'statut' => $user->statut,
             'dernier_connexion' => $user->dernier_connexion,
             'roles' => $user->getRoleNames(),
-            'permissions' => $user->getAllPermissions()->pluck('name'),
             'client' => $user->client,
             'voyageur' => $user->voyageur,
             'mode_actuel' => $user->voyageur ? ($user->voyageur->mode_client ? 'client' : 'voyageur') : 'client',

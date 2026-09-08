@@ -20,7 +20,14 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $user = DB::transaction(function () use ($validated) {
+        $user = DB::transaction(function () use ($validated, $request) {
+            $avatarPath = null;
+            if ($request->hasFile('avatar')) {
+                $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            } elseif (!empty($validated['avatar']) && is_string($validated['avatar'])) {
+                $avatarPath = $validated['avatar'];
+            }
+
             $user = User::create([
                 'nom' => $validated['nom'],
                 'prenom' => $validated['prenom'],
@@ -28,7 +35,7 @@ class AuthController extends Controller
                 'email' => $validated['email'],
                 'mot_de_passe' => $validated['mot_de_passe'],
                 'adresse' => $validated['adresse'] ?? null,
-                'avatar' => $validated['avatar'] ?? null,
+                'avatar' => $avatarPath,
                 'statut' => 'actif',
             ]);
 
@@ -133,7 +140,7 @@ class AuthController extends Controller
      */
     protected function formatUserResponse(User $user): array
     {
-        $user->loadMissing(['client', 'voyageur', 'roles', 'permissions']);
+        $user->loadMissing(['client', 'voyageur', 'roles']);
 
         return [
             'id' => $user->id,
@@ -146,7 +153,6 @@ class AuthController extends Controller
             'statut' => $user->statut,
             'dernier_connexion' => $user->dernier_connexion,
             'roles' => $user->getRoleNames(),
-            'permissions' => $user->getAllPermissions()->pluck('name'),
             'client' => $user->client,
             'voyageur' => $user->voyageur,
             'mode_actuel' => $user->voyageur ? ($user->voyageur->mode_client ? 'client' : 'voyageur') : 'client',

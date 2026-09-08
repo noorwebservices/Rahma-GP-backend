@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -36,5 +37,10 @@ Route::middleware('auth:api')->group(function () {
         // Basculement de mode sécurisé par la permission mode.basculer
         Route::post('toggle-mode', [ProfileController::class, 'toggleMode'])
             ->middleware('permission:mode.basculer');
+    });
+
+    // Routes Administration (Réservées au rôle Admin)
+    Route::prefix('admin')->middleware('role:admin,api')->group(function () {
+        Route::get('users', [AdminController::class, 'users']);
     });
 });
