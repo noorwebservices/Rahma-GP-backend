@@ -22,25 +22,10 @@ class RolePermissionSeeder extends Seeder
         // Réinitialiser le cache des permissions de Spatie.
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Permissions
-        |--------------------------------------------------------------------------
-        */
-
         $permissions = [
-
-            // -----------------------------------------------------------------
-            // Profil utilisateur
-            // -----------------------------------------------------------------
-
             'profil.voir',
             'profil.modifier',
             'mode.basculer',
-
-            // -----------------------------------------------------------------
-            // Voyages
-            // -----------------------------------------------------------------
 
             'voyages.creer',
             'voyages.modifier',
@@ -48,10 +33,6 @@ class RolePermissionSeeder extends Seeder
             'voyages.voir',
             'voyages.publier',
             'voyages.gerer',
-
-            // -----------------------------------------------------------------
-            // Réservations
-            // -----------------------------------------------------------------
 
             'reservations.creer',
             'reservations.voir',
@@ -61,10 +42,6 @@ class RolePermissionSeeder extends Seeder
             'reservations.annuler',
             'reservations.gerer',
 
-            // -----------------------------------------------------------------
-            // Colis
-            // -----------------------------------------------------------------
-
             'colis.creer',
             'colis.voir',
             'colis.modifier',
@@ -73,41 +50,21 @@ class RolePermissionSeeder extends Seeder
             'colis.annuler',
             'colis.gerer',
 
-            // -----------------------------------------------------------------
-            // Suivi des colis
-            // -----------------------------------------------------------------
-
             'suivis.creer',
             'suivis.voir',
-
-            // -----------------------------------------------------------------
-            // Destinataires
-            // -----------------------------------------------------------------
 
             'destinataires.creer',
             'destinataires.voir',
             'destinataires.modifier',
             'destinataires.supprimer',
 
-            // -----------------------------------------------------------------
-            // Paiements
-            // -----------------------------------------------------------------
-
             'paiements.creer',
             'paiements.voir',
             'paiements.confirmer',
             'paiements.gerer',
 
-            // -----------------------------------------------------------------
-            // Messagerie
-            // -----------------------------------------------------------------
-
             'messages.envoyer',
             'messages.voir',
-
-            // -----------------------------------------------------------------
-            // Évaluations
-            // -----------------------------------------------------------------
 
             'evaluations.creer',
             'evaluations.voir',
@@ -115,148 +72,66 @@ class RolePermissionSeeder extends Seeder
             'evaluations.supprimer',
             'evaluations.gerer',
 
-            // -----------------------------------------------------------------
-            // Revenus voyageur
-            // -----------------------------------------------------------------
-
             'revenus.voir',
             'revenus.retirer',
-
-            // -----------------------------------------------------------------
-            // Notifications
-            // -----------------------------------------------------------------
 
             'notifications.voir',
             'notifications.marquer_lue',
             'notifications.gerer',
-
-            // -----------------------------------------------------------------
-            // Administration
-            // -----------------------------------------------------------------
 
             'utilisateurs.gerer',
             'utilisateurs.suspendre',
             'statistiques.voir',
         ];
 
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate([
-                'name' => $permission,
-                'guard_name' => 'web',
+        $guards = ['api', 'web'];
+
+        foreach ($guards as $guard) {
+            foreach ($permissions as $permission) {
+                Permission::firstOrCreate([
+                    'name' => $permission,
+                    'guard_name' => $guard,
+                ]);
+            }
+
+            $clientPermissions = [
+                'profil.voir', 'profil.modifier', 'mode.basculer', 'voyages.voir',
+                'reservations.creer', 'reservations.voir', 'reservations.modifier', 'reservations.annuler',
+                'colis.creer', 'colis.voir', 'colis.modifier', 'colis.suivre', 'colis.annuler',
+                'suivis.voir', 'destinataires.creer', 'destinataires.voir', 'destinataires.modifier', 'destinataires.supprimer',
+                'paiements.creer', 'paiements.voir', 'messages.envoyer', 'messages.voir',
+                'evaluations.creer', 'evaluations.voir', 'notifications.voir', 'notifications.marquer_lue',
+            ];
+
+            $client = Role::firstOrCreate([
+                'name' => 'client',
+                'guard_name' => $guard,
             ]);
+            $client->syncPermissions(Permission::where('guard_name', $guard)->whereIn('name', $clientPermissions)->get());
+
+            $voyageurPermissions = [
+                'profil.voir', 'profil.modifier', 'mode.basculer',
+                'voyages.creer', 'voyages.modifier', 'voyages.supprimer', 'voyages.voir', 'voyages.publier',
+                'reservations.voir', 'reservations.accepter', 'reservations.refuser',
+                'colis.voir', 'colis.modifier_statut', 'suivis.creer', 'suivis.voir',
+                'paiements.voir', 'messages.envoyer', 'messages.voir',
+                'evaluations.creer', 'evaluations.voir', 'revenus.voir', 'revenus.retirer',
+                'notifications.voir', 'notifications.marquer_lue',
+            ];
+
+            $voyageur = Role::firstOrCreate([
+                'name' => 'voyageur',
+                'guard_name' => $guard,
+            ]);
+            $voyageur->syncPermissions(Permission::where('guard_name', $guard)->whereIn('name', $voyageurPermissions)->get());
+
+            $admin = Role::firstOrCreate([
+                'name' => 'admin',
+                'guard_name' => $guard,
+            ]);
+            $admin->syncPermissions(Permission::where('guard_name', $guard)->get());
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Rôle Client
-        |--------------------------------------------------------------------------
-        */
-
-        $client = Role::firstOrCreate([
-            'name' => 'client',
-            'guard_name' => 'web',
-        ]);
-
-        $client->syncPermissions([
-            'profil.voir',
-            'profil.modifier',
-            'mode.basculer',
-
-            'voyages.voir',
-
-            'reservations.creer',
-            'reservations.voir',
-            'reservations.modifier',
-            'reservations.annuler',
-
-            'colis.creer',
-            'colis.voir',
-            'colis.modifier',
-            'colis.suivre',
-            'colis.annuler',
-
-            'suivis.voir',
-
-            'destinataires.creer',
-            'destinataires.voir',
-            'destinataires.modifier',
-            'destinataires.supprimer',
-
-            'paiements.creer',
-            'paiements.voir',
-
-            'messages.envoyer',
-            'messages.voir',
-
-            'evaluations.creer',
-            'evaluations.voir',
-
-            'notifications.voir',
-            'notifications.marquer_lue',
-        ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Rôle Voyageur
-        |--------------------------------------------------------------------------
-        */
-
-        $voyageur = Role::firstOrCreate([
-            'name' => 'voyageur',
-            'guard_name' => 'web',
-        ]);
-
-        $voyageur->syncPermissions([
-            'profil.voir',
-            'profil.modifier',
-            'mode.basculer',
-
-            'voyages.creer',
-            'voyages.modifier',
-            'voyages.supprimer',
-            'voyages.voir',
-            'voyages.publier',
-
-            'reservations.voir',
-            'reservations.accepter',
-            'reservations.refuser',
-
-            'colis.voir',
-            'colis.modifier_statut',
-
-            'suivis.creer',
-            'suivis.voir',
-
-            'paiements.voir',
-
-            'messages.envoyer',
-            'messages.voir',
-
-            'evaluations.creer',
-            'evaluations.voir',
-
-            'revenus.voir',
-            'revenus.retirer',
-
-            'notifications.voir',
-            'notifications.marquer_lue',
-        ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Rôle Admin
-        |--------------------------------------------------------------------------
-        */
-
-        $admin = Role::firstOrCreate([
-            'name' => 'admin',
-            'guard_name' => 'web',
-        ]);
-
-        // L'administrateur possède toutes les permissions.
-        $admin->syncPermissions(Permission::all());
-
-        // Vider à nouveau le cache après les modifications.
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
