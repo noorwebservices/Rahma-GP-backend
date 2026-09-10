@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdresseDepotController;
 use App\Http\Controllers\Api\AdresseRecuperationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\VoyageController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -68,6 +69,24 @@ Route::middleware('auth:api')->group(function () {
         ->middleware('permission:adresse_recuperations.modifier,api');
     Route::delete('adresse-recuperations/{adresseRecuperation}', [AdresseRecuperationController::class, 'destroy'])
         ->middleware('permission:adresse_recuperations.supprimer,api');
+
+    // Gestion des Voyages
+    Route::get('voyages', [VoyageController::class, 'index'])
+        ->middleware('permission:voyages.voir,api');
+    Route::post('voyages', [VoyageController::class, 'store'])
+        ->middleware('permission:voyages.creer,api');
+    Route::get('voyages/{voyage}', [VoyageController::class, 'show'])
+        ->middleware('permission:voyages.voir,api');
+    Route::put('voyages/{voyage}', [VoyageController::class, 'update'])
+        ->middleware('permission:voyages.modifier,api');
+    Route::patch('voyages/{voyage}', [VoyageController::class, 'update'])
+        ->middleware('permission:voyages.modifier,api');
+    Route::delete('voyages/{voyage}', [VoyageController::class, 'destroy'])
+        ->middleware('permission:voyages.supprimer,api');
+    Route::post('voyages/{voyage}/publier', [VoyageController::class, 'publier'])
+        ->middleware('permission:voyages.publier,api');
+    Route::post('voyages/{voyage}/annuler', [VoyageController::class, 'annuler'])
+        ->middleware('permission:voyages.modifier,api');
 
     // Routes Administration (Réservées au rôle Admin)
     Route::prefix('admin')->middleware('role:admin,api')->group(function () {
