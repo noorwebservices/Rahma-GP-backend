@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionSeeder extends Seeder
@@ -58,6 +58,16 @@ class RolePermissionSeeder extends Seeder
             'destinataires.modifier',
             'destinataires.supprimer',
 
+            'adresse_depots.creer',
+            'adresse_depots.voir',
+            'adresse_depots.modifier',
+            'adresse_depots.supprimer',
+
+            'adresse_recuperations.creer',
+            'adresse_recuperations.voir',
+            'adresse_recuperations.modifier',
+            'adresse_recuperations.supprimer',
+
             'paiements.creer',
             'paiements.voir',
             'paiements.confirmer',
@@ -99,6 +109,7 @@ class RolePermissionSeeder extends Seeder
                 'reservations.creer', 'reservations.voir', 'reservations.modifier', 'reservations.annuler',
                 'colis.creer', 'colis.voir', 'colis.modifier', 'colis.suivre', 'colis.annuler',
                 'suivis.voir', 'destinataires.creer', 'destinataires.voir', 'destinataires.modifier', 'destinataires.supprimer',
+                'adresse_depots.voir', 'adresse_recuperations.voir',
                 'paiements.creer', 'paiements.voir', 'messages.envoyer', 'messages.voir',
                 'evaluations.creer', 'evaluations.voir', 'notifications.voir', 'notifications.marquer_lue',
             ];
@@ -114,6 +125,8 @@ class RolePermissionSeeder extends Seeder
                 'voyages.creer', 'voyages.modifier', 'voyages.supprimer', 'voyages.voir', 'voyages.publier',
                 'reservations.voir', 'reservations.accepter', 'reservations.refuser',
                 'colis.voir', 'colis.modifier_statut', 'suivis.creer', 'suivis.voir',
+                'adresse_depots.creer', 'adresse_depots.voir', 'adresse_depots.modifier', 'adresse_depots.supprimer',
+                'adresse_recuperations.creer', 'adresse_recuperations.voir', 'adresse_recuperations.modifier', 'adresse_recuperations.supprimer',
                 'paiements.voir', 'messages.envoyer', 'messages.voir',
                 'evaluations.creer', 'evaluations.voir', 'revenus.voir', 'revenus.retirer',
                 'notifications.voir', 'notifications.marquer_lue',

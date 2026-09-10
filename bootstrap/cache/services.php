@@ -25,15 +25,19 @@
     21 => 'Illuminate\\Translation\\TranslationServiceProvider',
     22 => 'Illuminate\\Validation\\ValidationServiceProvider',
     23 => 'Illuminate\\View\\ViewServiceProvider',
-    24 => 'Laravel\\Pail\\PailServiceProvider',
-    25 => 'Laravel\\Pao\\Laravel\\ServiceProvider',
-    26 => 'Laravel\\Tinker\\TinkerServiceProvider',
-    27 => 'Carbon\\Laravel\\ServiceProvider',
-    28 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
-    29 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    30 => 'Spatie\\Permission\\PermissionServiceProvider',
-    31 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
-    32 => 'App\\Providers\\AppServiceProvider',
+    24 => 'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider',
+    25 => 'Laravel\\Boost\\BoostServiceProvider',
+    26 => 'Laravel\\Mcp\\Server\\McpServiceProvider',
+    27 => 'Laravel\\Pail\\PailServiceProvider',
+    28 => 'Laravel\\Pao\\Laravel\\ServiceProvider',
+    29 => 'Laravel\\Roster\\RosterServiceProvider',
+    30 => 'Laravel\\Tinker\\TinkerServiceProvider',
+    31 => 'Carbon\\Laravel\\ServiceProvider',
+    32 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
+    33 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    34 => 'Spatie\\Permission\\PermissionServiceProvider',
+    35 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
+    36 => 'App\\Providers\\AppServiceProvider',
   ),
   'eager' => 
   array (
@@ -47,14 +51,17 @@
     7 => 'Illuminate\\Pagination\\PaginationServiceProvider',
     8 => 'Illuminate\\Session\\SessionServiceProvider',
     9 => 'Illuminate\\View\\ViewServiceProvider',
-    10 => 'Laravel\\Pail\\PailServiceProvider',
-    11 => 'Laravel\\Pao\\Laravel\\ServiceProvider',
-    12 => 'Carbon\\Laravel\\ServiceProvider',
-    13 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
-    14 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    15 => 'Spatie\\Permission\\PermissionServiceProvider',
-    16 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
-    17 => 'App\\Providers\\AppServiceProvider',
+    10 => 'Laravel\\Boost\\BoostServiceProvider',
+    11 => 'Laravel\\Mcp\\Server\\McpServiceProvider',
+    12 => 'Laravel\\Pail\\PailServiceProvider',
+    13 => 'Laravel\\Pao\\Laravel\\ServiceProvider',
+    14 => 'Laravel\\Roster\\RosterServiceProvider',
+    15 => 'Carbon\\Laravel\\ServiceProvider',
+    16 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
+    17 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    18 => 'Spatie\\Permission\\PermissionServiceProvider',
+    19 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
+    20 => 'App\\Providers\\AppServiceProvider',
   ),
   'deferred' => 
   array (
@@ -218,6 +225,10 @@
     'validator' => 'Illuminate\\Validation\\ValidationServiceProvider',
     'validation.presence' => 'Illuminate\\Validation\\ValidationServiceProvider',
     'Illuminate\\Contracts\\Validation\\UncompromisedVerifier' => 'Illuminate\\Validation\\ValidationServiceProvider',
+    'Barryvdh\\LaravelIdeHelper\\Console\\GeneratorCommand' => 'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider',
+    'Barryvdh\\LaravelIdeHelper\\Console\\ModelsCommand' => 'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider',
+    'Barryvdh\\LaravelIdeHelper\\Console\\MetaCommand' => 'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider',
+    'Barryvdh\\LaravelIdeHelper\\Console\\EloquentCommand' => 'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider',
     'command.tinker' => 'Laravel\\Tinker\\TinkerServiceProvider',
   ),
   'when' => 
@@ -262,6 +273,9 @@
     array (
     ),
     'Illuminate\\Validation\\ValidationServiceProvider' => 
+    array (
+    ),
+    'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider' => 
     array (
     ),
     'Laravel\\Tinker\\TinkerServiceProvider' => 

@@ -2,17 +2,24 @@
 
 namespace App\Models;
 
+use Database\Factories\AdresseRecuperationFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class Adresse_recuperation extends Model
 {
-    /** @use HasFactory<\Database\Factories\AdresseRecuperationFactory> */
+    /** @use HasFactory<AdresseRecuperationFactory> */
     use HasFactory, HasUuids;
 
     protected $guarded = [];
+
+    public function voyageur(): BelongsTo
+    {
+        return $this->belongsTo(Voyageur::class);
+    }
 
     public function voyages(): HasMany
     {
