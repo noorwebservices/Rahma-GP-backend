@@ -4,7 +4,9 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdresseDepotController;
 use App\Http\Controllers\Api\AdresseRecuperationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ColisController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\VoyageController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,6 +15,9 @@ use Illuminate\Support\Facades\Route;
 | API Routes (préfixe /api)
 |--------------------------------------------------------------------------
 */
+
+// Suivi public de colis
+Route::get('colis/suivi/{numero_suivi}', [ColisController::class, 'suiviPublic']);
 
 // Routes publiques d'authentification
 Route::prefix('auth')->group(function () {
@@ -87,6 +92,40 @@ Route::middleware('auth:api')->group(function () {
         ->middleware('permission:voyages.publier,api');
     Route::post('voyages/{voyage}/annuler', [VoyageController::class, 'annuler'])
         ->middleware('permission:voyages.modifier,api');
+
+    // Gestion des Réservations
+    Route::get('reservations', [ReservationController::class, 'index'])
+        ->middleware('permission:reservations.voir,api');
+    Route::post('reservations', [ReservationController::class, 'store'])
+        ->middleware('permission:reservations.creer,api');
+    Route::get('reservations/{reservation}', [ReservationController::class, 'show'])
+        ->middleware('permission:reservations.voir,api');
+    Route::put('reservations/{reservation}', [ReservationController::class, 'update'])
+        ->middleware('permission:reservations.modifier,api');
+    Route::patch('reservations/{reservation}', [ReservationController::class, 'update'])
+        ->middleware('permission:reservations.modifier,api');
+    Route::post('reservations/{reservation}/accepter', [ReservationController::class, 'accepter'])
+        ->middleware('permission:reservations.accepter,api');
+    Route::post('reservations/{reservation}/refuser', [ReservationController::class, 'refuser'])
+        ->middleware('permission:reservations.refuser,api');
+    Route::post('reservations/{reservation}/annuler', [ReservationController::class, 'annuler'])
+        ->middleware('permission:reservations.annuler,api');
+    Route::delete('reservations/{reservation}', [ReservationController::class, 'destroy'])
+        ->middleware('permission:reservations.annuler,api');
+
+    // Gestion des Colis
+    Route::get('colis', [ColisController::class, 'index'])
+        ->middleware('permission:colis.voir,api');
+    Route::post('colis', [ColisController::class, 'store'])
+        ->middleware('permission:colis.creer,api');
+    Route::get('colis/{colis}', [ColisController::class, 'show'])
+        ->middleware('permission:colis.voir,api');
+    Route::put('colis/{colis}', [ColisController::class, 'update'])
+        ->middleware('permission:colis.modifier,api');
+    Route::patch('colis/{colis}', [ColisController::class, 'update'])
+        ->middleware('permission:colis.modifier,api');
+    Route::patch('colis/{colis}/statut', [ColisController::class, 'updateStatut'])
+        ->middleware('permission:colis.modifier_statut,api');
 
     // Routes Administration (Réservées au rôle Admin)
     Route::prefix('admin')->middleware('role:admin,api')->group(function () {

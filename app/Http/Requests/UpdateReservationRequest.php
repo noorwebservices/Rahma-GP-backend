@@ -2,28 +2,27 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateReservationRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            //
+            'mode_paiement_souhaite' => ['sometimes', 'required', 'string', 'in:wave,espece_depot,livraison'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'mode_paiement_souhaite.required' => 'Le mode de paiement souhaité est obligatoire.',
+            'mode_paiement_souhaite.in' => 'Le mode de paiement doit être : wave, espece_depot ou livraison.',
         ];
     }
 }
