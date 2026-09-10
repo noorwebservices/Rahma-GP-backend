@@ -39,6 +39,35 @@ class VoyageResource extends JsonResource
             'voyageur' => new VoyageurResource($this->whenLoaded('voyageur')),
             'adresse_depot' => new AdresseDepotResource($this->whenLoaded('adresseDepot')),
             'adresse_recuperation' => new AdresseRecuperationResource($this->whenLoaded('adresseRecuperation')),
+            'reservations' => $this->whenLoaded('reservations', function () {
+                return $this->reservations->map(function ($r) {
+                    return [
+                        'id' => $r->id,
+                        'voyage_id' => $r->voyage_id,
+                        'client_id' => $r->client_id,
+                        'type_colis' => $r->type_colis ?? $r->description,
+                        'description' => $r->description,
+                        'poids' => $r->poids !== null ? (float) $r->poids : null,
+                        'prix_total' => $r->prix_total !== null ? (float) $r->prix_total : null,
+                        'statut' => $r->statut,
+                        'mode_paiement' => $r->mode_paiement,
+                        'code_tracking' => $r->code_tracking,
+                        'expediteur_nom' => $r->expediteur_nom,
+                        'expediteur_telephone' => $r->expediteur_telephone,
+                        'created_at' => $r->created_at?->toIso8601String(),
+                        'client' => $r->relationLoaded('client') && $r->client ? [
+                            'id' => $r->client->id,
+                            'user' => $r->client->relationLoaded('user') && $r->client->user ? [
+                                'id' => $r->client->user->id,
+                                'nom' => $r->client->user->nom,
+                                'prenom' => $r->client->user->prenom,
+                                'telephone' => $r->client->user->telephone,
+                                'email' => $r->client->user->email,
+                            ] : null,
+                        ] : null,
+                    ];
+                });
+            }),
         ];
     }
 }

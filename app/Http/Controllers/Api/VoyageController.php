@@ -152,7 +152,7 @@ class VoyageController extends Controller
      */
     public function show(Voyage $voyage): JsonResponse
     {
-        $voyage->load(['adresseDepot', 'adresseRecuperation', 'voyageur.user']);
+        $voyage->load(['adresseDepot', 'adresseRecuperation', 'voyageur.user', 'reservations.client.user']);
 
         return response()->json([
             'status' => 'success',
