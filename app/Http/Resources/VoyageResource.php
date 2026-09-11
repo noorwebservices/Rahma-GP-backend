@@ -34,6 +34,8 @@ class VoyageResource extends JsonResource
             'objets_autorises' => $this->objets_autorises ?? [],
             'objets_interdits' => $this->objets_interdits ?? [],
             'statut' => $this->statut,
+            'moyenne_notes' => round((float) (\App\Models\Evaluation::where('evalue_id', $this->voyageur?->user_id)->avg('note') ?? 0), 2),
+            'total_evaluations' => \App\Models\Evaluation::where('evalue_id', $this->voyageur?->user_id)->count(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'voyageur' => new VoyageurResource($this->whenLoaded('voyageur')),

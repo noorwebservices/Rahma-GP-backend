@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\AdresseDepotController;
 use App\Http\Controllers\Api\AdresseRecuperationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ColisController;
+use App\Http\Controllers\Api\EvaluationController;
+use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\VoyageController;
@@ -18,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 
 // Suivi public de colis
 Route::get('colis/suivi/{numero_suivi}', [ColisController::class, 'suiviPublic']);
+
+// Évaluations publiques d'un voyageur
+Route::get('voyageurs/{voyageur}/evaluations', [EvaluationController::class, 'indexForVoyageur']);
 
 // Routes publiques d'authentification
 Route::prefix('auth')->group(function () {
@@ -112,6 +117,20 @@ Route::middleware('auth:api')->group(function () {
         ->middleware('permission:reservations.annuler,api');
     Route::delete('reservations/{reservation}', [ReservationController::class, 'destroy'])
         ->middleware('permission:reservations.annuler,api');
+
+    // Messagerie / Discussions par Réservation
+    Route::get('reservations/{reservation}/messages', [MessageController::class, 'indexByReservation'])
+        ->middleware('permission:messages.voir,api');
+    Route::post('reservations/{reservation}/messages', [MessageController::class, 'store'])
+        ->middleware('permission:messages.envoyer,api');
+    Route::get('messages/non-lus-count', [MessageController::class, 'unreadCount'])
+        ->middleware('permission:messages.voir,api');
+
+    // Évaluations
+    Route::post('reservations/{reservation}/evaluations', [EvaluationController::class, 'store'])
+        ->middleware('permission:evaluations.creer,api');
+    Route::get('evaluations', [EvaluationController::class, 'index'])
+        ->middleware('permission:evaluations.voir,api');
 
     // Gestion des Colis
     Route::get('colis', [ColisController::class, 'index'])

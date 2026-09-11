@@ -14,6 +14,10 @@ class VoyageurResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $evaluationsQuery = \App\Models\Evaluation::where('evalue_id', $this->user_id);
+        $moyenne = round((float) ($evaluationsQuery->avg('note') ?? 0), 2);
+        $total = $evaluationsQuery->count();
+
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
@@ -25,6 +29,8 @@ class VoyageurResource extends JsonResource
             'prenom' => $this->user?->prenom,
             'avatar' => $this->user?->avatar,
             'telephone' => $this->user?->telephone,
+            'moyenne_notes' => $moyenne,
+            'total_evaluations' => $total,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
