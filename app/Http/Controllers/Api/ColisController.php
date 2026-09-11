@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateColisStatutRequest;
 use App\Http\Resources\ColisResource;
 use App\Models\Colis;
 use App\Models\Suivi_colis;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -145,6 +146,13 @@ class ColisController extends Controller
                 'commentaire' => $commentaire ?? sprintf('Mise à jour du statut du colis : %s', $nouveauStatut),
                 'mis_a_jour_par' => $user->id,
             ]);
+
+            NotificationService::send(
+                $colis->reservation->client->user_id,
+                'Statut du colis mis à jour',
+                sprintf('Le statut de votre colis (%s) a évolué vers : %s.', $colis->numero_suivi, $nouveauStatut),
+                'colis'
+            );
         });
 
         return response()->json([

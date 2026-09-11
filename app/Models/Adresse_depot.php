@@ -16,6 +16,11 @@ class Adresse_depot extends Model
 
     protected $guarded = [];
 
+    protected static function newFactory(): AdresseDepotFactory
+    {
+        return AdresseDepotFactory::new();
+    }
+
     public function voyageur(): BelongsTo
     {
         return $this->belongsTo(Voyageur::class);

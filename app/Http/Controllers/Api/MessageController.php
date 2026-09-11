@@ -7,6 +7,7 @@ use App\Http\Requests\StoreMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Message;
 use App\Models\Reservation;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -65,6 +66,13 @@ class MessageController extends Controller
             'est_lu' => false,
             'date_heure_envoi' => now(),
         ]);
+
+        NotificationService::send(
+            $destinataireId,
+            'Nouveau message reçu',
+            sprintf('Nouveau message de %s %s concernant la réservation %s.', $user->prenom, $user->nom, $reservation->numero),
+            'message'
+        );
 
         return response()->json([
             'message' => 'Message envoyé avec succès.',

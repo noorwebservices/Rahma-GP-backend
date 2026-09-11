@@ -10,15 +10,14 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class AdresseRecuperationFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = Adresse_recuperation::class;
+
     public function definition(): array
     {
         return [
-            //
+            'adresse' => $this->faker->streetAddress(),
+            'ville' => $this->faker->city(),
+            'pays' => $this->faker->country(),
         ];
     }
 }

@@ -413,3 +413,15 @@
 #45 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('/Users/bstar/De...')
 #46 {main}
 "} 
+[2026-09-11 14:50:57] local.ERROR: Access level to Tests\Feature\PaiementTest::actingAs() must be public (as in class Illuminate\Foundation\Testing\TestCase) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Access level to Tests\\Feature\\PaiementTest::actingAs() must be public (as in class Illuminate\\Foundation\\Testing\\TestCase) at /Users/bstar/Desktop/rahma-delivery-backend/tests/Feature/PaiementTest.php:20)
+[stacktrace]
+#0 {main}
+"} 
+[2026-09-11 14:51:15] local.ERROR: Access level to Tests\Feature\PaiementTest::actingAs() must be public (as in class Illuminate\Foundation\Testing\TestCase) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Access level to Tests\\Feature\\PaiementTest::actingAs() must be public (as in class Illuminate\\Foundation\\Testing\\TestCase) at /Users/bstar/Desktop/rahma-delivery-backend/tests/Feature/PaiementTest.php:20)
+[stacktrace]
+#0 {main}
+"} 
+[2026-09-11 14:55:02] local.ERROR: Access level to Tests\Feature\RevenusVoyageurTest::actingAs() must be public (as in class Illuminate\Foundation\Testing\TestCase) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Access level to Tests\\Feature\\RevenusVoyageurTest::actingAs() must be public (as in class Illuminate\\Foundation\\Testing\\TestCase) at /Users/bstar/Desktop/rahma-delivery-backend/tests/Feature/RevenusVoyageurTest.php:18)
+[stacktrace]
+#0 {main}
+"} 

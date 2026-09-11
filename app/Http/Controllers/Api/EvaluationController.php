@@ -8,6 +8,7 @@ use App\Http\Resources\EvaluationResource;
 use App\Models\Evaluation;
 use App\Models\Reservation;
 use App\Models\Voyageur;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -49,6 +50,13 @@ class EvaluationController extends Controller
             'note' => $request->note,
             'commentaire' => $request->commentaire ?? null,
         ]);
+
+        NotificationService::send(
+            $evalueId,
+            'Nouvelle évaluation reçue',
+            sprintf('Vous avez reçu une évaluation de %d/5 étoiles de la part de %s %s pour la réservation %s.', $request->note, $user->prenom, $user->nom, $reservation->numero),
+            'evaluation'
+        );
 
         return response()->json([
             'message' => 'Évaluation enregistrée avec succès.',

@@ -16,6 +16,11 @@ class Adresse_recuperation extends Model
 
     protected $guarded = [];
 
+    protected static function newFactory(): AdresseRecuperationFactory
+    {
+        return AdresseRecuperationFactory::new();
+    }
+
     public function voyageur(): BelongsTo
     {
         return $this->belongsTo(Voyageur::class);

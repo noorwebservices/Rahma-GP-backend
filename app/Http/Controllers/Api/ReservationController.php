@@ -10,6 +10,7 @@ use App\Models\Colis;
 use App\Models\Reservation;
 use App\Models\Suivi_colis;
 use App\Models\Voyage;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -123,6 +124,14 @@ class ReservationController extends Controller
                 'mis_a_jour_par' => $user->id,
             ]);
 
+            // Notifier le Voyageur
+            NotificationService::send(
+                $voyage->voyageur->user_id,
+                'Nouvelle demande de réservation',
+                sprintf('Vous avez reçu une nouvelle demande de réservation (%s) pour votre voyage %s -> %s.', $res->numero, $voyage->ville_depart, $voyage->ville_destination),
+                'reservation'
+            );
+
             return $res;
         });
 
@@ -223,6 +232,13 @@ class ReservationController extends Controller
                     'mis_a_jour_par' => $user->id,
                 ]);
             }
+
+            NotificationService::send(
+                $reservation->client->user_id,
+                'Réservation acceptée',
+                sprintf('Votre réservation %s a été acceptée par le voyageur.', $reservation->numero),
+                'reservation'
+            );
         });
 
         return response()->json([
@@ -253,6 +269,13 @@ class ReservationController extends Controller
             'date_refus' => now(),
         ]);
 
+        NotificationService::send(
+            $reservation->client->user_id,
+            'Réservation refusée',
+            sprintf('Votre réservation %s a été refusée par le voyageur.', $reservation->numero),
+            'reservation'
+        );
+
         return response()->json([
             'message' => 'Réservation refusée.',
             'data' => new ReservationResource($reservation->fresh(['voyage', 'client.user', 'colis'])),
@@ -275,7 +298,7 @@ class ReservationController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($reservation) {
+        DB::transaction(function () use ($reservation, $user) {
             if ($reservation->statut === 'acceptee' && $reservation->colis) {
                 $voyage = $reservation->voyage;
                 $poidsColis = (float) $reservation->colis->poids;
@@ -290,6 +313,17 @@ class ReservationController extends Controller
             }
 
             $reservation->update(['statut' => 'annulee']);
+
+            $targetUserId = ($user->id === $reservation->client->user_id)
+                ? $reservation->voyage->voyageur->user_id
+                : $reservation->client->user_id;
+
+            NotificationService::send(
+                $targetUserId,
+                'Réservation annulée',
+                sprintf('La réservation %s a été annulée.', $reservation->numero),
+                'reservation'
+            );
         });
 
         return response()->json([

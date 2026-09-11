@@ -7,8 +7,11 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ColisController;
 use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PaiementController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReservationController;
+use App\Http\Controllers\Api\RevenusVoyageurController;
 use App\Http\Controllers\Api\VoyageController;
 use Illuminate\Support\Facades\Route;
 
@@ -150,4 +153,22 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('admin')->middleware('role:admin,api')->group(function () {
         Route::get('users', [AdminController::class, 'users']);
     });
+
+    // Notifications
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications/non-lus-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('notifications/{notification}/lue', [NotificationController::class, 'marquerLue']);
+    Route::patch('notifications/toutes-lues', [NotificationController::class, 'marquerToutesLues']);
+
+    // Paiements
+    Route::post('reservations/{reservation}/paiements', [PaiementController::class, 'store'])
+        ->middleware('permission:reservations.voir,api');
+    Route::get('paiements', [PaiementController::class, 'index'])
+        ->middleware('permission:reservations.voir,api');
+    Route::get('paiements/{paiement}', [PaiementController::class, 'show'])
+        ->middleware('permission:reservations.voir,api');
+
+    // Revenus Voyageur
+    Route::get('revenus', [RevenusVoyageurController::class, 'index']);
+    Route::post('revenus/retrait', [RevenusVoyageurController::class, 'retirer']);
 });
