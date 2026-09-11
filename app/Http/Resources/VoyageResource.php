@@ -41,20 +41,26 @@ class VoyageResource extends JsonResource
             'adresse_recuperation' => new AdresseRecuperationResource($this->whenLoaded('adresseRecuperation')),
             'reservations' => $this->whenLoaded('reservations', function () {
                 return $this->reservations->map(function ($r) {
+                    $colis = $r->relationLoaded('colis') ? $r->colis : null;
+
                     return [
                         'id' => $r->id,
+                        'numero' => $r->numero,
                         'voyage_id' => $r->voyage_id,
                         'client_id' => $r->client_id,
-                        'type_colis' => $r->type_colis ?? $r->description,
-                        'description' => $r->description,
-                        'poids' => $r->poids !== null ? (float) $r->poids : null,
-                        'prix_total' => $r->prix_total !== null ? (float) $r->prix_total : null,
+                        'montant_total' => $r->montant_total !== null ? (float) $r->montant_total : null,
+                        'mode_paiement_souhaite' => $r->mode_paiement_souhaite,
                         'statut' => $r->statut,
-                        'mode_paiement' => $r->mode_paiement,
-                        'code_tracking' => $r->code_tracking,
-                        'expediteur_nom' => $r->expediteur_nom,
-                        'expediteur_telephone' => $r->expediteur_telephone,
+                        'type_colis' => $colis?->type,
+                        'description' => $colis?->description,
+                        'poids' => $colis?->poids !== null ? (float) $colis->poids : null,
+                        'prix_total' => $r->montant_total !== null ? (float) $r->montant_total : null,
+                        'mode_paiement' => $r->mode_paiement_souhaite,
+                        'code_tracking' => $colis?->numero_suivi,
+                        'expediteur_nom' => $r->relationLoaded('client') && $r->client?->relationLoaded('user') ? $r->client->user?->nom : null,
+                        'expediteur_telephone' => $r->relationLoaded('client') && $r->client?->relationLoaded('user') ? $r->client->user?->telephone : null,
                         'created_at' => $r->created_at?->toIso8601String(),
+                        'colis' => $colis ? new ColisResource($colis) : null,
                         'client' => $r->relationLoaded('client') && $r->client ? [
                             'id' => $r->client->id,
                             'user' => $r->client->relationLoaded('user') && $r->client->user ? [
