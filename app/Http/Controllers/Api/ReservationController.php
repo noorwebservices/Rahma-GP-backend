@@ -100,6 +100,25 @@ class ReservationController extends Controller
             } while (Colis::where('numero_suivi', $numeroSuivi)->exists());
 
             $colisData = $request->input('colis');
+            $photoPath = null;
+            if (!empty($colisData['photo'])) {
+                $photo = $colisData['photo'];
+                if (preg_match('/^data:image\/(\w+);base64,/', $photo, $type)) {
+                    $data = substr($photo, strpos($photo, ',') + 1);
+                    $type = strtolower($type[1]);
+                    if (in_array($type, ['jpg', 'jpeg', 'gif', 'png', 'webp'])) {
+                        $decodedData = base64_decode($data);
+                        if ($decodedData !== false) {
+                            $fileName = 'colis/' . Str::random(40) . '.' . $type;
+                            \Illuminate\Support\Facades\Storage::disk('public')->put($fileName, $decodedData);
+                            $photoPath = $fileName;
+                        }
+                    }
+                } else {
+                    $photoPath = $photo;
+                }
+            }
+
             $colis = Colis::create([
                 'reservation_id' => $res->id,
                 'numero_suivi' => $numeroSuivi,
@@ -112,7 +131,7 @@ class ReservationController extends Controller
                 'destinataire_prenom' => $colisData['destinataire_prenom'],
                 'destinataire_numero' => $colisData['destinataire_numero'],
                 'destinataire_adresse' => $colisData['destinataire_adresse'],
-                'photo' => $colisData['photo'] ?? null,
+                'photo' => $photoPath,
                 'statut' => 'demande_envoyee',
             ]);
 

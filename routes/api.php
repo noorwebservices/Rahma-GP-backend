@@ -152,6 +152,8 @@ Route::middleware('auth:api')->group(function () {
     // Routes Administration (Réservées au rôle Admin)
     Route::prefix('admin')->middleware('role:admin,api')->group(function () {
         Route::get('users', [AdminController::class, 'users']);
+        Route::patch('voyageurs/{voyageur}/statut', [AdminController::class, 'updateStatutVoyageur']);
+        Route::put('voyageurs/{voyageur}/statut', [AdminController::class, 'updateStatutVoyageur']);
     });
 
     // Notifications

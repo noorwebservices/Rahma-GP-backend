@@ -98,4 +98,27 @@ class NotificationTest extends TestCase
         $response->assertOk();
         $this->assertDatabaseMissing('notifications', ['user_id' => $user->id, 'lu' => false]);
     }
+
+    #[Test]
+    public function notifications_de_plus_de_3_jours_sont_supprimees_par_prune(): void
+    {
+        $user = User::factory()->create();
+
+        // Notification de 4 jours (doit être supprimée)
+        $ancienneNotif = Notification::factory()->create([
+            'user_id' => $user->id,
+            'created_at' => now()->subDays(4),
+        ]);
+
+        // Notification récente de 1 jour (doit être conservée)
+        $recenteNotif = Notification::factory()->create([
+            'user_id' => $user->id,
+            'created_at' => now()->subDays(1),
+        ]);
+
+        $this->artisan('model:prune', ['--model' => [Notification::class]]);
+
+        $this->assertDatabaseMissing('notifications', ['id' => $ancienneNotif->id]);
+        $this->assertDatabaseHas('notifications', ['id' => $recenteNotif->id]);
+    }
 }

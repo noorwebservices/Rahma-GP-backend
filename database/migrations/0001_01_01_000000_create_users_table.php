@@ -16,16 +16,16 @@ return new class extends Migration
             $table->string('nom'); // nom
             $table->string('prenom'); // prenom
             $table->string('telephone')->unique(); // telephone (unique pour la connexion)
-            $table->string('email')->unique(); // email (unique pour la connexion)
+            $table->string('email')->nullable()->unique(); // email (optional/nullable)
             $table->string('avatar')->nullable(); // avatar (chemin de l'image, nullable)
             $table->text('adresse')->nullable(); // adresse (text si longue, nullable)
-            
+
             // statut : enum( actif , inactif ,suspendu ) avec 'actif' par défaut
-            $table->enum('statut', ['actif', 'inactif', 'suspendu'])->default('actif'); 
-            
+            $table->enum('statut', ['actif', 'inactif', 'suspendu'])->default('actif');
+
             $table->string('mot_de_passe'); // mot_de_passe
             $table->timestamp('dernier_connexion')->nullable(); // dernier_connexion (date/heure, nullable)
-            
+
             $table->rememberToken(); // Requis par Laravel pour "se souvenir de moi"
             $table->timestamps(); // créé_le et modifié_le (created_at, updated_at)
         });

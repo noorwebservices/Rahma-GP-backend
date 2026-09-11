@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
-use App\Models\User;
 use App\Models\Client;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
@@ -24,7 +24,7 @@ class AuthController extends Controller
             $avatarPath = null;
             if ($request->hasFile('avatar')) {
                 $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            } elseif (!empty($validated['avatar']) && is_string($validated['avatar'])) {
+            } elseif (! empty($validated['avatar']) && is_string($validated['avatar'])) {
                 $avatarPath = $validated['avatar'];
             }
 
@@ -32,7 +32,7 @@ class AuthController extends Controller
                 'nom' => $validated['nom'],
                 'prenom' => $validated['prenom'],
                 'telephone' => $validated['telephone'],
-                'email' => $validated['email'],
+                'email' => $validated['email'] ?? null,
                 'mot_de_passe' => $validated['mot_de_passe'],
                 'adresse' => $validated['adresse'] ?? null,
                 'avatar' => $avatarPath,

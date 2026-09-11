@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Voyageur;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -20,9 +22,9 @@ class AdminController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
-                  ->orWhere('prenom', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('telephone', 'like', "%{$search}%");
+                    ->orWhere('prenom', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('telephone', 'like', "%{$search}%");
             });
         }
 
@@ -42,6 +44,41 @@ class AdminController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $users,
+        ]);
+    }
+
+    /**
+     * Modifier le statut de vérification d'un voyageur (en_attente, verifie, refuse).
+     */
+    public function updateStatutVoyageur(Request $request, Voyageur $voyageur): JsonResponse
+    {
+        $validated = $request->validate([
+            'statut' => 'required|string|in:en_attente,verifie,refuse',
+        ]);
+
+        $voyageur->update([
+            'statut' => $validated['statut'],
+        ]);
+
+        $messageNotification = match ($validated['statut']) {
+            'verifie' => 'Félicitations, votre compte voyageur a été vérifié avec succès.',
+            'refuse' => 'Votre demande de vérification de compte voyageur a été refusée.',
+            default => 'Le statut de votre compte voyageur est en attente de vérification.',
+        };
+
+        if ($voyageur->user_id) {
+            NotificationService::send(
+                $voyageur->user_id,
+                'Statut compte voyageur mis à jour',
+                $messageNotification,
+                'systeme'
+            );
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Statut du voyageur mis à jour avec succès.',
+            'data' => $voyageur->fresh(['user']),
         ]);
     }
 }

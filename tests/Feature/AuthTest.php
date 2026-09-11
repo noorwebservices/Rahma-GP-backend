@@ -38,6 +38,25 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('clients', []);
     }
 
+    public function test_user_can_register_without_email()
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'nom' => 'Fall',
+            'prenom' => 'Modou',
+            'telephone' => '+221770009988',
+            'mot_de_passe' => 'password123',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('user.telephone', '+221770009988')
+            ->assertJsonPath('user.email', null);
+
+        $this->assertDatabaseHas('users', [
+            'telephone' => '+221770009988',
+            'email' => null,
+        ]);
+    }
+
     public function test_user_can_login_with_email()
     {
         $this->postJson('/api/auth/register', [

@@ -21,7 +21,7 @@ class UpdateProfileRequest extends FormRequest
             'nom' => ['sometimes', 'string', 'max:255'],
             'prenom' => ['sometimes', 'string', 'max:255'],
             'telephone' => ['sometimes', 'string', 'max:50', Rule::unique('users', 'telephone')->ignore($userId)],
-            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'adresse' => ['nullable', 'string'],
             'avatar' => ['nullable', 'sometimes'],
             'mot_de_passe' => ['nullable', 'string', 'min:6'],
