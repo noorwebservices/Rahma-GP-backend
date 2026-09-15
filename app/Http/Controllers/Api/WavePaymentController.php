@@ -57,7 +57,7 @@ class WavePaymentController extends Controller
         }
 
         $errorUrl = $frontendUrl . '/client/booking/step-4?error=wave&reservation=' . $reservation->id;
-        $successUrl = $frontendUrl . '/client/colis?success=wave&reservation=' . $reservation->id;
+        $successUrl = $frontendUrl . '/client/messages?success=wave&reservation=' . $reservation->id;
 
         if (str_starts_with($errorUrl, 'http://')) {
             $errorUrl = 'https://' . substr($errorUrl, 7);
