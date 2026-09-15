@@ -760,3 +760,24 @@
 [stacktrace]
 #0 {main}
 "} 
+[2026-09-15 15:25:14] local.ERROR: filemtime(): stat failed for /Users/bstar/Desktop/rahma-delivery-backend/.env {"exception":"[object] (ErrorException(code: 0): filemtime(): stat failed for /Users/bstar/Desktop/rahma-delivery-backend/.env at /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php:159)
+[stacktrace]
+#0 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(263): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleError(2, 'filemtime(): st...', '/Users/bstar/De...', 159)
+#1 [internal function]: Illuminate\\Foundation\\Bootstrap\\HandleExceptions->{closure:Illuminate\\Foundation\\Bootstrap\\HandleExceptions::forwardsTo():262}(2, 'filemtime(): st...', '/Users/bstar/De...', 159)
+#2 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php(159): filemtime('/Users/bstar/De...')
+#3 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\\Foundation\\Console\\ServeCommand->handle()
+#4 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::{closure:Illuminate\\Container\\BoundMethod::call():35}()
+#5 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate\\Container\\Util::unwrapIfClosure(Object(Closure))
+#6 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#7 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Container/Container.php(803): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#8 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Console/Command.php(292): Illuminate\\Container\\Container->call(Array)
+#9 /Users/bstar/Desktop/rahma-delivery-backend/vendor/symfony/console/Command/Command.php(285): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#10 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Console/Command.php(261): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#11 /Users/bstar/Desktop/rahma-delivery-backend/vendor/symfony/console/Application.php(1144): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#12 /Users/bstar/Desktop/rahma-delivery-backend/vendor/symfony/console/Application.php(379): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Foundation\\Console\\ServeCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#13 /Users/bstar/Desktop/rahma-delivery-backend/vendor/symfony/console/Application.php(218): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#14 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#15 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1242): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#16 /Users/bstar/Desktop/rahma-delivery-backend/artisan(16): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#17 {main}
+"} 
