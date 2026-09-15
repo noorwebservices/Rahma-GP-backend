@@ -183,7 +183,7 @@ class WavePaymentController extends Controller
 
     /**
      * Gérer les Webhooks envoyés par Wave
-     * POST /api/webhooks/wave
+     * POST /api/wave/webhook
      */
     public function handleWebhook(Request $request): JsonResponse
     {

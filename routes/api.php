@@ -183,4 +183,4 @@ Route::middleware('auth:api')->group(function () {
 });
 
 // Webhook Wave (Public, vérifié par signature HMAC)
-Route::post('webhooks/wave', [WavePaymentController::class, 'handleWebhook']);
+Route::post('wave/webhook', [WavePaymentController::class, 'handleWebhook']);

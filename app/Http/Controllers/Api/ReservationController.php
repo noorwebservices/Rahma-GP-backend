@@ -78,7 +78,23 @@ class ReservationController extends Controller
 
         $prixKg = (float) ($voyage->prix_kg ?? 0);
         $prixObjet = (float) ($voyage->prix_objet ?? 0);
-        $montantTotal = ($colisPoids * $prixKg) + $prixObjet;
+
+        $colisType = (string) $request->input('colis.type', '');
+        $typeLower = mb_strtolower($colisType);
+        $isElectronic = str_contains($typeLower, 'électronique') ||
+                        str_contains($typeLower, 'electronique') ||
+                        str_contains($typeLower, 'téléphone') ||
+                        str_contains($typeLower, 'telephone') ||
+                        str_contains($typeLower, 'high-tech') ||
+                        str_contains($typeLower, 'hightech') ||
+                        str_contains($typeLower, 'ordinateur') ||
+                        str_contains($typeLower, 'tablette');
+
+        if ($isElectronic && $prixObjet > 0) {
+            $montantTotal = $prixObjet;
+        } else {
+            $montantTotal = $colisPoids * $prixKg;
+        }
 
         $reservation = DB::transaction(function () use ($request, $user, $voyage, $colisPoids, $montantTotal) {
             do {
