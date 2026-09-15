@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\RevenusVoyageurController;
 use App\Http\Controllers\Api\VoyageController;
+use App\Http\Controllers\Api\WavePaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -170,7 +171,16 @@ Route::middleware('auth:api')->group(function () {
     Route::get('paiements/{paiement}', [PaiementController::class, 'show'])
         ->middleware('permission:reservations.voir,api');
 
+    // Integration Wave Checkout API
+    Route::post('reservations/{reservation}/pay-wave', [WavePaymentController::class, 'initiatePayment']);
+    Route::get('reservations/{reservation}/wave-status', [WavePaymentController::class, 'checkStatus']);
+
     // Revenus Voyageur
     Route::get('revenus', [RevenusVoyageurController::class, 'index']);
     Route::post('revenus/retrait', [RevenusVoyageurController::class, 'retirer']);
+
+    
 });
+
+// Webhook Wave (Public, vérifié par signature HMAC)
+Route::post('webhooks/wave', [WavePaymentController::class, 'handleWebhook']);

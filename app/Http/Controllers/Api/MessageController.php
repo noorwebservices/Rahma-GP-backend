@@ -41,7 +41,7 @@ class MessageController extends Controller
         $messages = Message::where('reservation_id', $reservation->id)
             ->with(['expediteur', 'destinataire'])
             ->orderBy('date_heure_envoi', 'asc')
-            ->paginate(50);
+            ->get();
 
         return MessageResource::collection($messages);
     }
