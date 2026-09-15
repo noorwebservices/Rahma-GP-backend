@@ -156,8 +156,8 @@ class WavePaymentController extends Controller
             ]);
         }
 
-        // Si en attente et qu'on a un ID de session Wave dans la référence
-        if ($paiement->reference && str_starts_with($paiement->reference, 'cos-')) {
+        // Si en attente et qu'on a une référence de session Wave
+        if ($paiement->reference && ! str_starts_with($paiement->reference, 'PAY-')) {
             $apiKey = config('services.wave.api_key');
             $baseUrl = config('services.wave.base_url', 'https://api.wave.com/v1');
 
@@ -167,10 +167,10 @@ class WavePaymentController extends Controller
 
                 if ($response->successful()) {
                     $session = $response->json();
-                    $paymentStatus = $session['payment_status'] ?? $session['checkout_status'] ?? '';
+                    $paymentStatus = $session['payment_status'] ?? $session['checkout_status'] ?? $session['status'] ?? '';
 
-                    if (in_array($paymentStatus, ['succeeded', 'complete', 'successful'], true)) {
-                        $this->markReservationPaid($reservation, $paiement, (float) ($session['amount'] ?? $paiement->montant));
+                    if (in_array(strtolower((string) $paymentStatus), ['succeeded', 'complete', 'successful', 'paid'], true)) {
+                        $this->markReservationPaid($reservation, $paiement, (float) ($session['amount'] ?? $paiement->montant), $paiement->reference);
 
                         return response()->json([
                             'statut' => 'reussi',
