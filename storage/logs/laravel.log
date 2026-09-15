@@ -853,3 +853,4 @@
 #68 {main}
 "} 
 [2026-09-15 17:57:37] local.ERROR: Erreur Wave API Checkout: {"status":400,"body":"{\"code\": \"request-validation-error\", \"message\": \"Request invalid\", \"details\": [{\"loc\": [\"success_url\"], \"msg\": \"URL scheme not permitted\", \"type\": \"value_error.url.scheme\", \"ctx\": {\"allowed_schemes\": [\"https\"]}}, {\"loc\": [\"error_url\"], \"msg\": \"URL scheme not permitted\", \"type\": \"value_error.url.scheme\", \"ctx\": {\"allowed_schemes\": [\"https\"]}}]}"} 
+[2026-09-15 18:02:49] local.ERROR: Erreur Wave API Checkout: {"status":400,"body":"{\"code\": \"request-validation-error\", \"message\": \"Request invalid\", \"details\": [{\"loc\": [\"success_url\"], \"msg\": \"URL host invalid, top level domain required\", \"type\": \"value_error.url.host\"}, {\"loc\": [\"error_url\"], \"msg\": \"URL host invalid, top level domain required\", \"type\": \"value_error.url.host\"}]}"} 

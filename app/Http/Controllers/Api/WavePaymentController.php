@@ -50,12 +50,10 @@ class WavePaymentController extends Controller
         $apiKey = config('services.wave.api_key');
         $baseUrl = config('services.wave.base_url', 'https://api.wave.com/v1');
         $currency = config('services.wave.currency', 'XOF');
-        $frontendUrl = env('APP_FRONTEND_URL', 'http://localhost:5173');
-
-        if (! $apiKey) {
-            return response()->json([
-                'message' => 'La clé API Wave n\'est pas configurée sur le serveur.',
-            ], 500);
+        $frontendUrl = env('APP_FRONTEND_URL', 'https://app.rahmadelivery.com');
+        $host = parse_url($frontendUrl, PHP_URL_HOST);
+        if (! $host || str_contains($host, 'localhost') || str_contains($host, '127.0.0.1')) {
+            $frontendUrl = 'https://app.rahmadelivery.com';
         }
 
         $errorUrl = $frontendUrl . '/client/booking/step-4?error=wave&reservation=' . $reservation->id;
