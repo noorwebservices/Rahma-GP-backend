@@ -852,3 +852,4 @@
 #67 /Users/bstar/Desktop/rahma-delivery-backend/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('/Users/bstar/De...')
 #68 {main}
 "} 
+[2026-09-15 17:57:37] local.ERROR: Erreur Wave API Checkout: {"status":400,"body":"{\"code\": \"request-validation-error\", \"message\": \"Request invalid\", \"details\": [{\"loc\": [\"success_url\"], \"msg\": \"URL scheme not permitted\", \"type\": \"value_error.url.scheme\", \"ctx\": {\"allowed_schemes\": [\"https\"]}}, {\"loc\": [\"error_url\"], \"msg\": \"URL scheme not permitted\", \"type\": \"value_error.url.scheme\", \"ctx\": {\"allowed_schemes\": [\"https\"]}}]}"} 

@@ -58,15 +58,25 @@ class WavePaymentController extends Controller
             ], 500);
         }
 
+        $errorUrl = $frontendUrl . '/client/booking/step-4?error=wave&reservation=' . $reservation->id;
+        $successUrl = $frontendUrl . '/client/colis?success=wave&reservation=' . $reservation->id;
+
+        if (str_starts_with($errorUrl, 'http://')) {
+            $errorUrl = 'https://' . substr($errorUrl, 7);
+        }
+        if (str_starts_with($successUrl, 'http://')) {
+            $successUrl = 'https://' . substr($successUrl, 7);
+        }
+
         // 3. Appel à l'API Wave Checkout Session
         try {
             $response = Http::withToken($apiKey)
                 ->acceptJson()
                 ->post($baseUrl . '/checkout/sessions', [
-                    'amount' => (string) $montant,
+                    'amount' => (string) (int) round($montant),
                     'currency' => $currency,
-                    'error_url' => $frontendUrl . '/client/booking/step-4?error=wave&reservation=' . $reservation->id,
-                    'success_url' => $frontendUrl . '/client/colis?success=wave&reservation=' . $reservation->id,
+                    'error_url' => $errorUrl,
+                    'success_url' => $successUrl,
                     'client_reference' => (string) $reservation->id,
                 ]);
 
