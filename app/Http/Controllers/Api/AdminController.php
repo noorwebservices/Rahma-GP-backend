@@ -171,6 +171,7 @@ class AdminController extends Controller
         $userData['evaluations_recues'] = $evaluationsRecues;
         $userData['note_moyenne'] = $noteMoyenne;
         $userData['total_evaluations'] = $evaluationsRecues->count();
+        $userData['capacite_donnees'] = $dataSize;
 
         if (isset($userData['voyageur']) && $userData['voyageur']) {
             $userData['voyageur']['note_moyenne'] = $noteMoyenne;
