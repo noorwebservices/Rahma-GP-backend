@@ -20,6 +20,8 @@ class VoyageController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        Voyage::closePastVoyages();
+
         /** @var User $user */
         $user = auth('api')->user();
         $voyageur = $user?->voyageur()->first();
@@ -39,7 +41,7 @@ class VoyageController extends Controller
         // 2. Client (ou Voyageur en mode client) : accès aux voyages publiés + aux voyages réservés par le client
         elseif ($client && ! $isAdmin) {
             $query->where(function ($q) use ($client) {
-                $q->where('statut', 'publie')
+                $q->whereIn('statut', ['publie', 'complet', 'ferme', 'cloture', 'termine'])
                     ->orWhereHas('reservations', function ($rq) use ($client) {
                         $rq->where('client_id', $client->id);
                     });
@@ -52,7 +54,7 @@ class VoyageController extends Controller
         // 3. Admin ou requête publique : voir les publiés par défaut, ou tous pour l'admin
         else {
             if (! $isAdmin) {
-                $query->where('statut', 'publie');
+                $query->whereIn('statut', ['publie', 'complet', 'ferme', 'cloture', 'termine']);
             } elseif ($request->filled('statut')) {
                 $query->where('statut', $request->query('statut'));
             }
@@ -106,10 +108,10 @@ class VoyageController extends Controller
         }
 
         // Vérification impérative du statut vérifié pour le voyageur
-        if (! $isAdmin && $voyageur->statut !== 'verifie') {
+        if (! $isAdmin && $voyageur?->statut !== 'verifie') {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Votre profil voyageur doit être vérifié par un administrateur pour pouvoir créer un voyage.',
+                'message' => 'Seuls les voyageurs dont la pièce d\'identité a été vérifiée par l\'administrateur peuvent créer un voyage.',
             ], 403);
         }
 
@@ -133,7 +135,7 @@ class VoyageController extends Controller
             ], 403);
         }
 
-        $validated['voyageur_id'] = $voyageur?->id;
+        $validated['voyageur_id'] = $voyageur ? $voyageur->id : $request->input('voyageur_id');
         $validated['capacite_dispo'] = $validated['capacite_totale'];
         $validated['statut'] = $validated['statut'] ?? 'brouillon';
 
@@ -152,6 +154,8 @@ class VoyageController extends Controller
      */
     public function show(Voyage $voyage): JsonResponse
     {
+        Voyage::closePastVoyages();
+        $voyage->refresh();
         $voyage->load(['adresseDepot', 'adresseRecuperation', 'voyageur.user', 'reservations.client.user', 'reservations.colis']);
 
         return response()->json([

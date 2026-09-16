@@ -13,6 +13,27 @@ class UpdateProfileRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $inputs = [];
+
+        if ($this->has('current_password') && !$this->has('mot_de_passe_actuel')) {
+            $inputs['mot_de_passe_actuel'] = $this->input('current_password');
+        }
+
+        if ($this->has('password') && !$this->has('mot_de_passe')) {
+            $inputs['mot_de_passe'] = $this->input('password');
+        }
+
+        if ($this->has('password_confirmation') && !$this->has('mot_de_passe_confirmation')) {
+            $inputs['mot_de_passe_confirmation'] = $this->input('password_confirmation');
+        }
+
+        if (!empty($inputs)) {
+            $this->merge($inputs);
+        }
+    }
+
     public function rules(): array
     {
         $userId = $this->user()?->id;
@@ -24,7 +45,9 @@ class UpdateProfileRequest extends FormRequest
             'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'adresse' => ['nullable', 'string'],
             'avatar' => ['nullable', 'sometimes'],
-            'mot_de_passe' => ['nullable', 'string', 'min:6'],
+            'mot_de_passe_actuel' => ['required_with:mot_de_passe', 'nullable', 'string'],
+            'mot_de_passe' => ['nullable', 'string', 'min:6', 'confirmed'],
+            'mot_de_passe_confirmation' => ['required_with:mot_de_passe', 'nullable', 'string'],
         ];
     }
 

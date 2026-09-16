@@ -16,19 +16,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolePermissionSeeder::class,
-            ClientSeeder::class,
-            VoyageurSeeder::class,
-            AdresseDepotSeeder::class,
-            AdresseRecuperationSeeder::class,
-            VoyageSeeder::class,
-            ReservationSeeder::class,
-            ColisSeeder::class,
-            SuiviColisSeeder::class,
-            PaiementSeeder::class,
-            MessageSeeder::class,
-            EvaluationSeeder::class,
-            RevenusVoyageurSeeder::class,
-            NotificationSeeder::class,
+            AdminSeeder::class,
         ]);
     }
 }

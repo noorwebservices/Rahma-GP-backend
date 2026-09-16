@@ -123,7 +123,57 @@ class ColisController extends Controller
             ], 403);
         }
 
+        // Auto-fermer les voyages dont la date de départ est passée
+        \App\Models\Voyage::closePastVoyages();
+
+        $voyage = $colis->reservation->voyage->fresh();
         $nouveauStatut = $request->statut;
+
+        $statusLevels = [
+            'demande_envoyee' => 1,
+            'reservation_acceptee' => 2,
+            'colis_depose' => 3,
+            'colis_pris_en_charge' => 4,
+            'en_transit' => 5,
+            'arrive' => 6,
+            'livre' => 7,
+            'livree' => 7,
+        ];
+
+        $statutActuel = $colis->statut ?? 'demande_envoyee';
+        $reservationStatut = $colis->reservation->statut ?? 'en_attente';
+
+        // 1. Ne pas permettre de modifier le statut du colis tant que la réservation n'est pas acceptée
+        if ($reservationStatut !== 'acceptee' && ! in_array($nouveauStatut, ['demande_envoyee', 'reservation_acceptee'], true)) {
+            return response()->json([
+                'message' => 'La réservation doit d\'abord être acceptée par le voyageur avant de pouvoir modifier le statut du colis.',
+            ], 422);
+        }
+
+        // 2. Forcer le respect de l'ordre séquentiel des étapes
+        $niveauActuel = $statusLevels[$statutActuel] ?? 1;
+        $niveauNouveau = $statusLevels[$nouveauStatut] ?? 1;
+
+        if ($niveauNouveau > $niveauActuel + 1) {
+            return response()->json([
+                'message' => 'Veuillez respecter l\'ordre d\'acheminement du colis. Vous ne pouvez pas sauter des étapes (ex: marquer comme livré sans passer par le transit/arrivée).',
+            ], 422);
+        }
+
+        // Restriction : Impossible d'utiliser (en_transit, arrive, livre) tant que le voyage n'est pas complet/fermé ou date de départ passée
+        if (in_array($nouveauStatut, ['en_transit', 'arrive', 'livre', 'livree'], true)) {
+            $isClosedOrCompleted = $voyage && (
+                in_array($voyage->statut, ['complet', 'ferme', 'cloture', 'termine'], true) ||
+                ($voyage->date_depart && $voyage->date_depart <= now())
+            );
+
+            if (! $isClosedOrCompleted) {
+                return response()->json([
+                    'message' => 'Le statut du colis ne peut pas être passé en transit, arrivé ou livré tant que le voyage n\'est pas complet ou fermé (ou que sa date de départ n\'est pas passée).',
+                ], 422);
+            }
+        }
+
         $commentaire = $request->commentaire;
 
         DB::transaction(function () use ($colis, $nouveauStatut, $commentaire, $user) {

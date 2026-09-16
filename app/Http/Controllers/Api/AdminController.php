@@ -23,13 +23,24 @@ class AdminController extends Controller
      */
     public function dashboardStats(): JsonResponse
     {
-        $totalUsers = User::count();
-        $totalClients = User::role('client')->count();
+        // Exclure les administrateurs du décompte des utilisateurs
+        $totalUsers = User::whereDoesntHave('roles', function ($q) {
+            $q->where('name', 'admin');
+        })->count();
+
+        $totalClients = User::role('client')->whereDoesntHave('roles', function ($q) {
+            $q->whereIn('name', ['admin', 'voyageur']);
+        })->count();
         $totalVoyageurs = User::role('voyageur')->count();
         $totalAdmins = User::role('admin')->count();
 
-        $usersActifs = User::where('statut', 'actif')->count();
-        $usersSuspendus = User::where('statut', 'suspendu')->count();
+        $usersActifs = User::whereDoesntHave('roles', function ($q) {
+            $q->where('name', 'admin');
+        })->where('statut', 'actif')->count();
+
+        $usersSuspendus = User::whereDoesntHave('roles', function ($q) {
+            $q->where('name', 'admin');
+        })->where('statut', 'suspendu')->count();
 
         $voyageursEnAttente = Voyageur::where('statut', 'en_attente')->count();
         $voyageursVerifies = Voyageur::where('statut', 'verifie')->count();
@@ -42,7 +53,7 @@ class AdminController extends Controller
 
         $totalVoyages = Voyage::count();
         $totalReservations = Reservation::count();
-        $totalPaiementsPassees = Paiement::where('statut', 'paye')->sum('montant');
+        $totalPaiementsPassees = Paiement::whereIn('statut', ['reussi', 'paye', 'disponible'])->sum('montant');
 
         // Estimation de la taille globale de la BD
         $messagesCount = Message::count();

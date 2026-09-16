@@ -31,7 +31,7 @@ class UpdateVoyageRequest extends FormRequest
             'objets_autorises.*' => ['string'],
             'objets_interdits' => ['nullable', 'array'],
             'objets_interdits.*' => ['string'],
-            'statut' => ['nullable', 'string', 'in:brouillon,publie,complet,en_cours,termine,annule'],
+            'statut' => ['nullable', 'string', 'in:brouillon,publie,complet,en_cours,termine,annule,ferme'],
         ];
     }
 
@@ -60,10 +60,10 @@ class UpdateVoyageRequest extends FormRequest
             'date_depart.date' => 'La date de départ doit être une date valide.',
             'date_arrivee.required' => 'La date d\'arrivée est obligatoire.',
             'date_arrivee.date' => 'La date d\'arrivée doit être une date valide.',
-            'date_arrivee.after' => 'La date d\'arrivée doit être strictly supérieure à la date de départ.',
+            'date_arrivee.after' => 'La date d\'arrivée doit être strictement supérieure à la date de départ.',
             'capacite_totale.required' => 'La capacité totale (en kg) est obligatoire.',
             'capacite_totale.numeric' => 'La capacité totale doit être un nombre valide.',
-            'capacite_totale.gt' => 'La capacité totale doit être strictement supérieure à 0.',
+            'capacite_totale.gt' => 'La capacité totale doit être strictly supérieure à 0.',
             'prix_kg.numeric' => 'Le prix par kilo doit être un nombre valide.',
             'prix_kg.min' => 'Le prix par kilo ne peut pas être négatif.',
             'prix_objet.numeric' => 'Le prix par objet doit être un nombre valide.',
@@ -74,7 +74,7 @@ class UpdateVoyageRequest extends FormRequest
             'description.max' => 'La description ne peut dépasser 1000 caractères.',
             'objets_autorises.array' => 'Les objets autorisés doivent être sous forme de liste.',
             'objets_interdits.array' => 'Les objets interdits doivent être sous forme de liste.',
-            'statut.in' => 'Le statut sélectionné est invalide. Valeurs acceptées: brouillon, publie, complet, en_cours, termine, annule.',
+            'statut.in' => 'Le statut sélectionné est invalide. Valeurs acceptées: brouillon, publie, complet, en_cours, termine, annule, ferme.',
         ];
     }
 }
