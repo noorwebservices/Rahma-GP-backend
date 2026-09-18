@@ -50,12 +50,20 @@ class WavePaymentController extends Controller
         $apiKey = config('services.wave.api_key');
         $baseUrl = config('services.wave.base_url', 'https://api.wave.com/v1');
         $currency = config('services.wave.currency', 'XOF');
-        $frontendUrl = env('APP_FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = env('APP_FRONTEND_URL', 'https://app.rahmadelivery.com');
+        $host = parse_url($frontendUrl, PHP_URL_HOST);
+        if (! $host || str_contains($host, 'localhost') || str_contains($host, '127.0.0.1')) {
+            $frontendUrl = 'https://app.rahmadelivery.com';
+        }
 
-        if (! $apiKey) {
-            return response()->json([
-                'message' => 'La clé API Wave n\'est pas configurée sur le serveur.',
-            ], 500);
+        $errorUrl = $frontendUrl . '/client/booking/step-4?error=wave&reservation=' . $reservation->id;
+        $successUrl = $frontendUrl . '/client/messages?success=wave&reservation=' . $reservation->id;
+
+        if (str_starts_with($errorUrl, 'http://')) {
+            $errorUrl = 'https://' . substr($errorUrl, 7);
+        }
+        if (str_starts_with($successUrl, 'http://')) {
+            $successUrl = 'https://' . substr($successUrl, 7);
         }
 
         // 3. Appel à l'API Wave Checkout Session
@@ -63,10 +71,10 @@ class WavePaymentController extends Controller
             $response = Http::withToken($apiKey)
                 ->acceptJson()
                 ->post($baseUrl . '/checkout/sessions', [
-                    'amount' => (string) $montant,
+                    'amount' => (string) (int) round($montant),
                     'currency' => $currency,
-                    'error_url' => $frontendUrl . '/client/booking/step-4?error=wave&reservation=' . $reservation->id,
-                    'success_url' => $frontendUrl . '/client/colis?success=wave&reservation=' . $reservation->id,
+                    'error_url' => $errorUrl,
+                    'success_url' => $successUrl,
                     'client_reference' => (string) $reservation->id,
                 ]);
 
@@ -148,8 +156,8 @@ class WavePaymentController extends Controller
             ]);
         }
 
-        // Si en attente et qu'on a un ID de session Wave dans la référence
-        if ($paiement->reference && str_starts_with($paiement->reference, 'cos-')) {
+        // Si en attente et qu'on a une référence de session Wave
+        if ($paiement->reference && ! str_starts_with($paiement->reference, 'PAY-')) {
             $apiKey = config('services.wave.api_key');
             $baseUrl = config('services.wave.base_url', 'https://api.wave.com/v1');
 
@@ -159,10 +167,10 @@ class WavePaymentController extends Controller
 
                 if ($response->successful()) {
                     $session = $response->json();
-                    $paymentStatus = $session['payment_status'] ?? $session['checkout_status'] ?? '';
+                    $paymentStatus = $session['payment_status'] ?? $session['checkout_status'] ?? $session['status'] ?? '';
 
-                    if (in_array($paymentStatus, ['succeeded', 'complete', 'successful'], true)) {
-                        $this->markReservationPaid($reservation, $paiement, (float) ($session['amount'] ?? $paiement->montant));
+                    if (in_array(strtolower((string) $paymentStatus), ['succeeded', 'complete', 'successful', 'paid'], true)) {
+                        $this->markReservationPaid($reservation, $paiement, (float) ($session['amount'] ?? $paiement->montant), $paiement->reference);
 
                         return response()->json([
                             'statut' => 'reussi',
@@ -183,7 +191,7 @@ class WavePaymentController extends Controller
 
     /**
      * Gérer les Webhooks envoyés par Wave
-     * POST /api/webhooks/wave
+     * POST /api/wave/webhook
      */
     public function handleWebhook(Request $request): JsonResponse
     {

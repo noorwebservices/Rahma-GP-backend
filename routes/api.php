@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\RevenusVoyageurController;
 use App\Http\Controllers\Api\VoyageController;
 use App\Http\Controllers\Api\WavePaymentController;
+use App\Http\Controllers\Api\DemandePartenariatController;
+use App\Http\Controllers\Api\SignalementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,6 +23,9 @@ use Illuminate\Support\Facades\Route;
 | API Routes (préfixe /api)
 |--------------------------------------------------------------------------
 */
+
+// Formulaire public de demande de partenariat (portail)
+Route::post('demandes-partenariat', [DemandePartenariatController::class, 'store']);
 
 // Suivi public de colis
 Route::get('colis/suivi/{numero_suivi}', [ColisController::class, 'suiviPublic']);
@@ -151,11 +156,22 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('colis/{colis}/statut', [ColisController::class, 'updateStatut'])
         ->middleware('permission:colis.modifier_statut,api');
 
+    // Signalement de compte utilisateur (Clients & Voyageurs)
+    Route::post('signalements', [SignalementController::class, 'store']);
+
     // Routes Administration (Réservées au rôle Admin)
     Route::prefix('admin')->middleware('role:admin,api')->group(function () {
+        Route::get('dashboard-stats', [AdminController::class, 'dashboardStats']);
         Route::get('users', [AdminController::class, 'users']);
+        Route::get('users/{user}', [AdminController::class, 'showUser']);
+        Route::patch('users/{user}/block', [AdminController::class, 'toggleBlockUser']);
         Route::patch('voyageurs/{voyageur}/statut', [AdminController::class, 'updateStatutVoyageur']);
         Route::put('voyageurs/{voyageur}/statut', [AdminController::class, 'updateStatutVoyageur']);
+        Route::get('signalements', [AdminController::class, 'signalements']);
+        Route::patch('signalements/{signalement}/statut', [AdminController::class, 'updateSignalementStatut']);
+        Route::get('demandes-partenariat', [AdminController::class, 'demandesPartenariat']);
+        Route::patch('demandes-partenariat/{demande}/statut', [AdminController::class, 'updateDemandePartenariatStatut']);
+        Route::get('voyageurs-stats', [AdminController::class, 'voyageursStats']);
     });
 
     // Notifications
@@ -184,4 +200,4 @@ Route::middleware('auth:api')->group(function () {
 });
 
 // Webhook Wave (Public, vérifié par signature HMAC)
-Route::post('webhooks/wave', [WavePaymentController::class, 'handleWebhook']);
+Route::post('wave/webhook', [WavePaymentController::class, 'handleWebhook']);

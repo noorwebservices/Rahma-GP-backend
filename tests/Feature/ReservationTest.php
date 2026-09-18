@@ -123,7 +123,7 @@ class ReservationTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonPath('message', 'Réservation effectuée avec succès.')
             ->assertJsonPath('data.statut', 'en_attente')
-            ->assertJsonPath('data.montant_total', 50) // (4.5 * 10) + 5 = 50
+            ->assertJsonPath('data.montant_total', 5) // Forfait prix_objet = 5
             ->assertJsonPath('data.colis.type', 'Électronique')
             ->assertJsonPath('data.colis.poids', 4.5);
 

@@ -104,6 +104,16 @@ class User extends Authenticatable implements JWTSubject
      {
          return $this->hasMany(Paiement::class, 'confirme_par');
      }
+
+     public function signalementsFaits(): HasMany
+     {
+         return $this->hasMany(Signalement::class, 'signaleur_id');
+     }
+
+     public function signalementsRecus(): HasMany
+     {
+         return $this->hasMany(Signalement::class, 'signale_id');
+     }
   
     /**
      * Méthodes JWT de Tymon

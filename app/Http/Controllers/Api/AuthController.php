@@ -128,6 +128,14 @@ class AuthController extends Controller
         /** @var User $user */
         $user = auth('api')->user();
 
+        if ($user->statut === 'suspendu') {
+            auth('api')->logout();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Votre compte a été suspendu ou bloqué par un administrateur.',
+            ], 403);
+        }
+
         // Mettre à jour la date de dernière connexion
         $user->update([
             'dernier_connexion' => now(),
@@ -197,6 +205,16 @@ class AuthController extends Controller
     {
         $user->loadMissing(['client', 'voyageur', 'roles']);
 
+        $roles = $user->getRoleNames();
+        $isAdmin = $roles->contains('admin');
+
+        $modeActuel = 'client';
+        if ($isAdmin) {
+            $modeActuel = 'admin';
+        } elseif ($user->voyageur) {
+            $modeActuel = $user->voyageur->mode_client ? 'client' : 'voyageur';
+        }
+
         return [
             'id' => $user->id,
             'nom' => $user->nom,
@@ -207,10 +225,10 @@ class AuthController extends Controller
             'adresse' => $user->adresse,
             'statut' => $user->statut,
             'dernier_connexion' => $user->dernier_connexion,
-            'roles' => $user->getRoleNames(),
+            'roles' => $roles,
             'client' => $user->client,
             'voyageur' => $user->voyageur,
-            'mode_actuel' => $user->voyageur ? ($user->voyageur->mode_client ? 'client' : 'voyageur') : 'client',
+            'mode_actuel' => $modeActuel,
         ];
     }
 }

@@ -14,14 +14,28 @@ class ClientSeeder extends Seeder
         $roleAdmin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'api']);
         $roleClient = Role::firstOrCreate(['name' => 'client', 'guard_name' => 'api']);
 
-        // 1. Administrateur : Hapsatou Thiam
+        // 1. Administrateur Principal : Admin Rahma
+        $adminMain = User::firstOrCreate(
+            ['email' => 'admin@rahma.sn'],
+            [
+                'nom' => 'Admin',
+                'prenom' => 'Rahma',
+                'telephone' => '+221770000000',
+                'mot_de_passe' => 'Admin@2026',
+                'adresse' => 'Dakar, Sénégal',
+                'statut' => 'actif',
+            ]
+        );
+        $adminMain->assignRole($roleAdmin);
+
+        // 2. Administrateur Secondaire : Hapsatou Thiam
         $admin = User::firstOrCreate(
             ['email' => 'hapsatou.thiam@example.com'],
             [
                 'nom' => 'Thiam',
                 'prenom' => 'Hapsatou',
-                'telephone' => '+221770000000',
-                'mot_de_passe' => 'password123',
+                'telephone' => '+221770000001',
+                'mot_de_passe' => 'Admin@2026',
                 'adresse' => 'Dakar Plateau, Sénégal',
                 'statut' => 'actif',
             ]

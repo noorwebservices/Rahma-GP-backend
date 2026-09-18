@@ -24,6 +24,16 @@ class ReservationResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'voyage' => new VoyageResource($this->whenLoaded('voyage')),
             'colis' => new ColisResource($this->whenLoaded('colis')),
+            'paiement' => $this->whenLoaded('paiement', function () {
+                return [
+                    'id' => $this->paiement->id,
+                    'montant' => (float) $this->paiement->montant,
+                    'mode_paiement' => $this->paiement->mode_paiement,
+                    'statut' => $this->paiement->statut,
+                    'reference' => $this->paiement->reference,
+                    'date_paiement' => $this->paiement->date_paiement?->toIso8601String(),
+                ];
+            }),
             'client' => $this->whenLoaded('client', function () {
                 return [
                     'id' => $this->client->id,

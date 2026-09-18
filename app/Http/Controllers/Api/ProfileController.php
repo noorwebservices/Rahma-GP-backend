@@ -11,6 +11,7 @@ use App\Models\Voyageur;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 class ProfileController extends Controller
@@ -38,6 +39,18 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = auth('api')->user();
         $validated = $request->validated();
+
+        if (!empty($validated['mot_de_passe'])) {
+            if (empty($validated['mot_de_passe_actuel']) || !Hash::check($validated['mot_de_passe_actuel'], $user->mot_de_passe)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Le mot de passe actuel est incorrect.',
+                    'errors' => [
+                        'mot_de_passe_actuel' => ['Le mot de passe actuel est incorrect.']
+                    ]
+                ], 422);
+            }
+        }
 
         $avatarPath = $user->avatar;
         if ($request->hasFile('avatar')) {

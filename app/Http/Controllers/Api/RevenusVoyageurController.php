@@ -24,13 +24,35 @@ class RevenusVoyageurController extends Controller
 
         $voyageurId = $user->voyageur?->id;
 
-        $totalRevenus = (float) Revenus_voyageur::where('voyageur_id', $voyageurId)->sum('montant');
-        $soldeDisponible = (float) Revenus_voyageur::where('voyageur_id', $voyageurId)->where('statut', 'disponible')->sum('montant');
+        if ($voyageurId) {
+            // Auto-création de l'entrée Revenus_voyageur si un Paiement réussi existe mais n'a pas encore de fiche revenu
+            $missingRevenuReservations = \App\Models\Reservation::whereHas('voyage', function ($q) use ($voyageurId) {
+                $q->where('voyageur_id', $voyageurId);
+            })
+            ->whereHas('paiement', function ($q) {
+                $q->where('statut', 'reussi');
+            })
+            ->whereDoesntHave('revenuVoyageur')
+            ->with('paiement')
+            ->get();
+
+            foreach ($missingRevenuReservations as $resItem) {
+                Revenus_voyageur::create([
+                    'voyageur_id' => $voyageurId,
+                    'reservation_id' => $resItem->id,
+                    'montant' => $resItem->paiement->montant ?? $resItem->montant_total,
+                    'statut' => 'disponible',
+                ]);
+            }
+        }
+
+        $totalRevenus = (float) Revenus_voyageur::where('voyageur_id', $voyageurId)->whereIn('statut', ['disponible', 'paye', 'retire', 'reussi'])->sum('montant');
+        $soldeDisponible = (float) Revenus_voyageur::where('voyageur_id', $voyageurId)->whereIn('statut', ['disponible', 'paye', 'reussi'])->sum('montant');
         $soldeRetire = (float) Revenus_voyageur::where('voyageur_id', $voyageurId)->where('statut', 'retire')->sum('montant');
         $soldeEnAttente = (float) Revenus_voyageur::where('voyageur_id', $voyageurId)->where('statut', 'en_attente')->sum('montant');
 
         $revenus = Revenus_voyageur::where('voyageur_id', $voyageurId)
-            ->with(['reservation.client.user', 'reservation.voyage'])
+            ->with(['reservation.client.user', 'reservation.voyage', 'reservation.paiement'])
             ->latest()
             ->paginate(15);
 

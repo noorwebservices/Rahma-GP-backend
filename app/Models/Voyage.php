@@ -40,8 +40,16 @@ class Voyage extends Model
         return $this->belongsTo(Adresse_recuperation::class);
     }
  
+    public static function closePastVoyages(): void
+    {
+        static::where('date_depart', '<', now())
+            ->whereNotIn('statut', ['ferme', 'complet', 'cloture', 'termine', 'annule'])
+            ->update(['statut' => 'ferme']);
+    }
+
     public function reservations(): HasMany
     {
         return $this->hasMany(Reservation::class);
     }
 }
+
