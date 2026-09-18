@@ -182,6 +182,13 @@ class ProfileController extends Controller
             ], 403);
         }
 
+        if ($user->voyageur->statut !== 'verifie' || empty($user->voyageur->email_verifie_at)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Votre compte voyageur n\'est pas encore vérifié. Vous devez attendre la validation administrative et confirmer votre adresse email via le lien reçu par mail.',
+            ], 403);
+        }
+
         $voyageur = $user->voyageur;
         $voyageur->mode_client = !$voyageur->mode_client;
         $voyageur->save();
@@ -201,6 +208,8 @@ class ProfileController extends Controller
      */
     protected function formatUserResponse(User $user): array
     {
+        $isVoyageurVerifie = $user->voyageur && $user->voyageur->statut === 'verifie' && !empty($user->voyageur->email_verifie_at);
+
         return [
             'id' => $user->id,
             'nom' => $user->nom,
@@ -214,7 +223,8 @@ class ProfileController extends Controller
             'roles' => $user->getRoleNames(),
             'client' => $user->client,
             'voyageur' => $user->voyageur,
-            'mode_actuel' => $user->voyageur ? ($user->voyageur->mode_client ? 'client' : 'voyageur') : 'client',
+            'is_voyageur_verifie' => $isVoyageurVerifie,
+            'mode_actuel' => $isVoyageurVerifie ? ($user->voyageur->mode_client ? 'client' : 'voyageur') : 'client',
         ];
     }
 }

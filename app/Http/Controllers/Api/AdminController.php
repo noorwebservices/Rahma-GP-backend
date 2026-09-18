@@ -4,18 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\VoyageurAccountValidatedMail;
+use App\Models\Client;
 use App\Models\DemandePartenariat;
 use App\Models\Message;
 use App\Models\Paiement;
 use App\Models\Reservation;
 use App\Models\Signalement;
+use App\Models\User;
+use App\Models\Voyage;
+use App\Models\Voyageur;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -270,7 +274,7 @@ class AdminController extends Controller
             $user = $voyageur->user;
             if ($user && $user->email && $validated['statut'] === 'verifie') {
                 try {
-                    $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173'));
+                    $frontendUrl = env('APP_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:5173'));
                     $verificationUrl = rtrim($frontendUrl, '/') . '/auth/verify-voyageur?token=' . $token;
 
                     Mail::to($user->email)->send(new VoyageurAccountValidatedMail($voyageur, $verificationUrl));
@@ -278,6 +282,7 @@ class AdminController extends Controller
                     Log::error("Erreur lors de l'envoi de l'email de validation voyageur: " . $e->getMessage());
                 }
             }
+
         }
 
         return response()->json([

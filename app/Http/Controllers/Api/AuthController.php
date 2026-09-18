@@ -80,10 +80,20 @@ class AuthController extends Controller
             return $user;
         });
 
+        if ($user->voyageur) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Inscription Voyageur réussie. Votre dossier a été transmis à l\'administration.',
+                'require_verification' => true,
+                'user' => $this->formatUserResponse($user),
+            ], 201);
+        }
+
         $token = auth('api')->login($user);
 
         return $this->respondWithToken($token, $user, 'Inscription réussie', 201);
     }
+
 
     /**
      * Vérification de l'adresse email et identité du voyageur suite à la validation par l'admin.
@@ -102,14 +112,72 @@ class AuthController extends Controller
         $voyageur->update([
             'email_verifie_at' => now(),
             'verification_token' => null,
+            'mode_client' => false,
         ]);
+
+        $user = $voyageur->user->fresh(['client', 'voyageur', 'roles']);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Votre identité et compte voyageur ont été vérifiés avec succès !',
+            'user' => $this->formatUserResponse($user),
             'voyageur' => $voyageur->fresh(['user']),
         ]);
     }
+
+    /**
+     * Renvoyer l'email de confirmation du compte voyageur.
+     */
+    public function resendVoyageurVerification(): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth('api')->user();
+
+        if (!$user || !$user->voyageur) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Aucun profil voyageur associé à ce compte.',
+            ], 404);
+        }
+
+        $voyageur = $user->voyageur;
+        if ($voyageur->statut !== 'verifie') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Votre compte voyageur n\'a pas encore été approuvé par l\'administration.',
+            ], 400);
+        }
+
+        if (!empty($voyageur->email_verifie_at)) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Votre compte voyageur est déjà totalement vérifié et actif.',
+                'user' => $this->formatUserResponse($user),
+            ]);
+        }
+
+        $token = \Illuminate\Support\Str::random(60);
+        $voyageur->update(['verification_token' => $token]);
+
+        $frontendUrl = env('APP_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:5173'));
+        $verificationUrl = rtrim($frontendUrl, '/') . '/auth/verify-voyageur?token=' . $token;
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(
+                new \App\Mail\VoyageurAccountValidatedMail($voyageur, $verificationUrl)
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Erreur renvoi mail voyageur: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Un nouvel email de confirmation a été envoyé à ' . $user->email . ' avec succès !',
+            'verification_url' => $verificationUrl,
+        ]);
+    }
+
+
 
     /**
      * Connexion JWT par email ou numéro de téléphone.
@@ -208,10 +276,12 @@ class AuthController extends Controller
         $roles = $user->getRoleNames();
         $isAdmin = $roles->contains('admin');
 
+        $isVoyageurVerifie = $user->voyageur && $user->voyageur->statut === 'verifie' && !empty($user->voyageur->email_verifie_at);
+
         $modeActuel = 'client';
         if ($isAdmin) {
             $modeActuel = 'admin';
-        } elseif ($user->voyageur) {
+        } elseif ($isVoyageurVerifie) {
             $modeActuel = $user->voyageur->mode_client ? 'client' : 'voyageur';
         }
 
@@ -228,6 +298,7 @@ class AuthController extends Controller
             'roles' => $roles,
             'client' => $user->client,
             'voyageur' => $user->voyageur,
+            'is_voyageur_verifie' => $isVoyageurVerifie,
             'mode_actuel' => $modeActuel,
         ];
     }
