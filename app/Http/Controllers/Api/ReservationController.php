@@ -93,7 +93,7 @@ class ReservationController extends Controller
         if ($isElectronic && $prixObjet > 0) {
             $montantTotal = $prixObjet;
         } else {
-            $montantTotal = $colisPoids * $prixKg;
+            $montantTotal = ceil($colisPoids) * $prixKg;
         }
 
         $reservation = DB::transaction(function () use ($request, $user, $voyage, $colisPoids, $montantTotal) {

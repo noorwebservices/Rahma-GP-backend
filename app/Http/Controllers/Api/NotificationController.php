@@ -17,7 +17,7 @@ class NotificationController extends Controller
 
         $query = Notification::where('user_id', $user->id);
 
-        if ($request->query('unread') === 'true') {
+        if ($request->query('unread') === 'true' || $request->query('unread') === '1' || $request->boolean('unread')) {
             $query->where('lu', false);
         }
 
