@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\VoyageurAccountValidatedMail;
 use App\Models\User;
 use App\Models\Voyageur;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -49,6 +53,7 @@ class AdminController extends Controller
 
     /**
      * Modifier le statut de vérification d'un voyageur (en_attente, verifie, refuse).
+     * Envoie un email de vérification/confirmation au voyageur si le statut passe à 'verifie'.
      */
     public function updateStatutVoyageur(Request $request, Voyageur $voyageur): JsonResponse
     {
@@ -56,9 +61,17 @@ class AdminController extends Controller
             'statut' => 'required|string|in:en_attente,verifie,refuse',
         ]);
 
-        $voyageur->update([
+        $updateData = [
             'statut' => $validated['statut'],
-        ]);
+        ];
+
+        $token = null;
+        if ($validated['statut'] === 'verifie') {
+            $token = Str::random(60);
+            $updateData['verification_token'] = $token;
+        }
+
+        $voyageur->update($updateData);
 
         $messageNotification = match ($validated['statut']) {
             'verifie' => 'Félicitations, votre compte voyageur a été vérifié avec succès.',
@@ -73,6 +86,19 @@ class AdminController extends Controller
                 $messageNotification,
                 'systeme'
             );
+
+            // Charger l'utilisateur associé pour l'email
+            $user = $voyageur->user;
+            if ($user && $user->email && $validated['statut'] === 'verifie') {
+                try {
+                    $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173'));
+                    $verificationUrl = rtrim($frontendUrl, '/') . '/auth/verify-voyageur?token=' . $token;
+
+                    Mail::to($user->email)->send(new VoyageurAccountValidatedMail($voyageur, $verificationUrl));
+                } catch (\Exception $e) {
+                    Log::error("Erreur lors de l'envoi de l'email de validation voyageur: " . $e->getMessage());
+                }
+            }
         }
 
         return response()->json([

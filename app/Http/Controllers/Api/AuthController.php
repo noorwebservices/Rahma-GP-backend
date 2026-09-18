@@ -7,14 +7,16 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\Voyageur;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
     /**
-     * Inscription d'un nouvel utilisateur + création automatique du profil Client.
+     * Inscription d'un nouvel utilisateur (profil Client ou Voyageur avec pièces d'identité).
      */
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -43,10 +45,37 @@ class AuthController extends Controller
             $roleClient = Role::firstOrCreate(['name' => 'client', 'guard_name' => 'api']);
             $user->assignRole($roleClient);
 
-            // Créer le profil Client associé
+            // Créer le profil Client associé par défaut
             Client::create([
                 'user_id' => $user->id,
             ]);
+
+            // Vérifier si le profil Voyageur est sélectionné
+            $isVoyageur = ($validated['profile_type'] ?? '') === 'voyageur' || !empty($validated['type_piece']);
+            if ($isVoyageur) {
+                $roleVoyageur = Role::firstOrCreate(['name' => 'voyageur', 'guard_name' => 'api']);
+                $user->assignRole($roleVoyageur);
+
+                $cniRectoPath = null;
+                if ($request->hasFile('cni_recto')) {
+                    $cniRectoPath = $request->file('cni_recto')->store('cni', 'public');
+                }
+
+                $cniVersoPath = null;
+                if ($request->hasFile('cni_verso')) {
+                    $cniVersoPath = $request->file('cni_verso')->store('cni', 'public');
+                }
+
+                Voyageur::create([
+                    'user_id' => $user->id,
+                    'type_piece' => $validated['type_piece'] ?? 'cni',
+                    'numero_piece' => $validated['numero_piece'] ?? null,
+                    'cni_recto' => $cniRectoPath,
+                    'cni_verso' => $cniVersoPath,
+                    'mode_client' => false,
+                    'statut' => 'en_attente',
+                ]);
+            }
 
             return $user;
         });
@@ -54,6 +83,32 @@ class AuthController extends Controller
         $token = auth('api')->login($user);
 
         return $this->respondWithToken($token, $user, 'Inscription réussie', 201);
+    }
+
+    /**
+     * Vérification de l'adresse email et identité du voyageur suite à la validation par l'admin.
+     */
+    public function verifyVoyageur(string $token): JsonResponse
+    {
+        $voyageur = Voyageur::where('verification_token', $token)->first();
+
+        if (!$voyageur) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Jeton de vérification invalide ou expiré.',
+            ], 404);
+        }
+
+        $voyageur->update([
+            'email_verifie_at' => now(),
+            'verification_token' => null,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Votre identité et compte voyageur ont été vérifiés avec succès !',
+            'voyageur' => $voyageur->fresh(['user']),
+        ]);
     }
 
     /**

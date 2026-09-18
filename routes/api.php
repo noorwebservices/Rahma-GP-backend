@@ -32,6 +32,7 @@ Route::get('voyageurs/{voyageur}/evaluations', [EvaluationController::class, 'in
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
+    Route::get('verify-voyageur/{token}', [AuthController::class, 'verifyVoyageur']);
 });
 
 // Routes protégées par JWT (auth:api)

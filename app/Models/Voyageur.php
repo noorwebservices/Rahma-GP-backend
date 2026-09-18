@@ -20,6 +20,7 @@ class Voyageur extends Model
     {
         return [
             'mode_client' => 'boolean',
+            'email_verifie_at' => 'datetime',
         ];
     }
 
