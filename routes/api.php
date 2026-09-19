@@ -61,7 +61,7 @@ Route::middleware('auth:api')->group(function () {
 
         // Basculement de mode sécurisé par la permission mode.basculer
         Route::post('toggle-mode', [ProfileController::class, 'toggleMode'])
-            ->middleware('permission:mode.basculer');
+            ->middleware('permission:mode.basculer,api');
     });
 
     // Adresses de dépôt
