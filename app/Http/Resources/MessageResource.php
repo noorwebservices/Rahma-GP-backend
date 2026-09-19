@@ -25,7 +25,8 @@ class MessageResource extends JsonResource
                     'id' => $this->expediteur->id,
                     'nom' => $this->expediteur->nom,
                     'prenom' => $this->expediteur->prenom,
-                    'photo_profil' => $this->expediteur->photo_profil ?? null,
+                    'avatar' => $this->expediteur->avatar,
+                    'photo_profil' => $this->expediteur->avatar,
                 ];
             }),
             'destinataire' => $this->whenLoaded('destinataire', function () {
@@ -33,7 +34,8 @@ class MessageResource extends JsonResource
                     'id' => $this->destinataire->id,
                     'nom' => $this->destinataire->nom,
                     'prenom' => $this->destinataire->prenom,
-                    'photo_profil' => $this->destinataire->photo_profil ?? null,
+                    'avatar' => $this->destinataire->avatar,
+                    'photo_profil' => $this->destinataire->avatar,
                 ];
             }),
         ];

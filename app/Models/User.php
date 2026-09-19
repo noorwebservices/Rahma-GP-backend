@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Media;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -45,6 +47,17 @@ class User extends Authenticatable implements JWTSubject
             'mot_de_passe' => 'hashed', 
             'dernier_connexion' => 'datetime',
         ];
+    }
+
+    /**
+     * Renvoie l'avatar sous forme d'URL absolue servable.
+     * Le setter conserve la valeur brute (chemin relatif) telle qu'assignée.
+     */
+    protected function avatar(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => Media::url($value),
+        );
     }
 
     // --- Relations 1-1 vers les profils métier ---

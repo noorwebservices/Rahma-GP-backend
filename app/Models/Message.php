@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Media;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -13,6 +15,14 @@ class Message extends Model
     use HasFactory, HasUuids;
 
     protected $guarded = [];
+
+    /** Pièce jointe en URL absolue servable. */
+    protected function pieceJointe(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => Media::url($value),
+        );
+    }
 
     protected function casts(): array
     {

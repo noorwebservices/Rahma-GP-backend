@@ -22,7 +22,8 @@ class EvaluationResource extends JsonResource
                     'id' => $this->evaluateur->id,
                     'nom' => $this->evaluateur->nom,
                     'prenom' => $this->evaluateur->prenom,
-                    'photo_profil' => $this->evaluateur->photo_profil ?? null,
+                    'avatar' => $this->evaluateur->avatar,
+                    'photo_profil' => $this->evaluateur->avatar,
                 ];
             }),
             'evalue' => $this->whenLoaded('evalue', function () {
@@ -30,7 +31,8 @@ class EvaluationResource extends JsonResource
                     'id' => $this->evalue->id,
                     'nom' => $this->evalue->nom,
                     'prenom' => $this->evalue->prenom,
-                    'photo_profil' => $this->evalue->photo_profil ?? null,
+                    'avatar' => $this->evalue->avatar,
+                    'photo_profil' => $this->evalue->avatar,
                 ];
             }),
         ];
