@@ -16,7 +16,21 @@ class Voyageur extends Model
     /** @use HasFactory<VoyageurFactory> */
     use HasFactory, HasUuids;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'type_piece',
+        'numero_piece',
+        'cni_recto',
+        'cni_verso',
+        'mode_client',
+        'statut',
+        'verification_token',
+        'email_verifie_at',
+    ];
+
+    protected $hidden = [
+        'verification_token',
+    ];
 
     protected function casts(): array
     {

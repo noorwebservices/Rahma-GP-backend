@@ -38,7 +38,7 @@ class RegisterRequest extends FormRequest
             if ($this->hasFile('avatar')) {
                 $subValidator = Validator::make(
                     ['avatar' => $this->file('avatar')],
-                    ['avatar' => 'file|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120']
+                    ['avatar' => 'file|image|mimes:jpeg,png,jpg,gif,webp|max:5120']
                 );
 
                 if ($subValidator->fails()) {

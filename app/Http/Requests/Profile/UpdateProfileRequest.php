@@ -17,19 +17,19 @@ class UpdateProfileRequest extends FormRequest
     {
         $inputs = [];
 
-        if ($this->has('current_password') && !$this->has('mot_de_passe_actuel')) {
+        if ($this->has('current_password') && ! $this->has('mot_de_passe_actuel')) {
             $inputs['mot_de_passe_actuel'] = $this->input('current_password');
         }
 
-        if ($this->has('password') && !$this->has('mot_de_passe')) {
+        if ($this->has('password') && ! $this->has('mot_de_passe')) {
             $inputs['mot_de_passe'] = $this->input('password');
         }
 
-        if ($this->has('password_confirmation') && !$this->has('mot_de_passe_confirmation')) {
+        if ($this->has('password_confirmation') && ! $this->has('mot_de_passe_confirmation')) {
             $inputs['mot_de_passe_confirmation'] = $this->input('password_confirmation');
         }
 
-        if (!empty($inputs)) {
+        if (! empty($inputs)) {
             $this->merge($inputs);
         }
     }
@@ -57,7 +57,7 @@ class UpdateProfileRequest extends FormRequest
             if ($this->hasFile('avatar')) {
                 $subValidator = Validator::make(
                     ['avatar' => $this->file('avatar')],
-                    ['avatar' => 'file|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120']
+                    ['avatar' => 'file|image|mimes:jpeg,png,jpg,gif,webp|max:5120']
                 );
 
                 if ($subValidator->fails()) {

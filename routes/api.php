@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdresseDepotController;
 use App\Http\Controllers\Api\AdresseRecuperationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ColisController;
+use App\Http\Controllers\Api\DemandePartenariatController;
 use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
@@ -12,10 +13,9 @@ use App\Http\Controllers\Api\PaiementController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\RevenusVoyageurController;
+use App\Http\Controllers\Api\SignalementController;
 use App\Http\Controllers\Api\VoyageController;
 use App\Http\Controllers\Api\WavePaymentController;
-use App\Http\Controllers\Api\DemandePartenariatController;
-use App\Http\Controllers\Api\SignalementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -35,9 +35,9 @@ Route::get('voyageurs/{voyageur}/evaluations', [EvaluationController::class, 'in
 
 // Routes publiques d'authentification
 Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login', [AuthController::class, 'login']);
-    Route::get('verify-voyageur/{token}', [AuthController::class, 'verifyVoyageur']);
+    Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+    Route::get('verify-voyageur/{token}', [AuthController::class, 'verifyVoyageur'])->middleware('throttle:10,1');
 });
 
 // Routes protégées par JWT (auth:api)
@@ -48,9 +48,9 @@ Route::middleware('auth:api')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('refresh', [AuthController::class, 'refresh']);
         Route::get('me', [AuthController::class, 'me']);
-        Route::post('resend-voyageur-verification', [AuthController::class, 'resendVoyageurVerification']);
+        Route::post('resend-voyageur-verification', [AuthController::class, 'resendVoyageurVerification'])
+            ->middleware('throttle:3,1');
     });
-
 
     // Gestion du Profil Utilisateur
     Route::prefix('profile')->group(function () {
@@ -198,7 +198,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('revenus', [RevenusVoyageurController::class, 'index']);
     Route::post('revenus/retrait', [RevenusVoyageurController::class, 'retirer']);
 
-    
 });
 
 // Webhook Wave (Public, vérifié par signature HMAC)
