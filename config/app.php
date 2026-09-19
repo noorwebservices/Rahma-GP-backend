@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | URL de base de l'application frontend (SPA). Utilisée pour construire les
+    | liens envoyés par email (ex. vérification de compte voyageur). Défini via
+    | config() plutôt que env() dans le code afin de rester correct après
+    | `php artisan config:cache`.
+    |
+    */
+
+    'frontend_url' => env('APP_FRONTEND_URL', env('FRONTEND_URL', 'https://rahmadelivery.com')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

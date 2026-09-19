@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Mail\VoyageurAccountValidatedMail;
 use App\Models\Client;
 use App\Models\User;
 use App\Models\Voyageur;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
@@ -51,7 +54,7 @@ class AuthController extends Controller
             ]);
 
             // Vérifier si le profil Voyageur est sélectionné
-            $isVoyageur = ($validated['profile_type'] ?? '') === 'voyageur' || !empty($validated['type_piece']);
+            $isVoyageur = ($validated['profile_type'] ?? '') === 'voyageur' || ! empty($validated['type_piece']);
             if ($isVoyageur) {
                 $roleVoyageur = Role::firstOrCreate(['name' => 'voyageur', 'guard_name' => 'api']);
                 $user->assignRole($roleVoyageur);
@@ -94,7 +97,6 @@ class AuthController extends Controller
         return $this->respondWithToken($token, $user, 'Inscription réussie', 201);
     }
 
-
     /**
      * Vérification de l'adresse email et identité du voyageur suite à la validation par l'admin.
      */
@@ -102,7 +104,7 @@ class AuthController extends Controller
     {
         $voyageur = Voyageur::where('verification_token', $token)->first();
 
-        if (!$voyageur) {
+        if (! $voyageur) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Jeton de vérification invalide ou expiré.',
@@ -133,7 +135,7 @@ class AuthController extends Controller
         /** @var User $user */
         $user = auth('api')->user();
 
-        if (!$user || !$user->voyageur) {
+        if (! $user || ! $user->voyageur) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Aucun profil voyageur associé à ce compte.',
@@ -148,7 +150,7 @@ class AuthController extends Controller
             ], 400);
         }
 
-        if (!empty($voyageur->email_verifie_at)) {
+        if (! empty($voyageur->email_verifie_at)) {
             return response()->json([
                 'status' => 'success',
                 'message' => 'Votre compte voyageur est déjà totalement vérifié et actif.',
@@ -156,28 +158,26 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = \Illuminate\Support\Str::random(60);
+        $token = Str::random(60);
         $voyageur->update(['verification_token' => $token]);
 
-        $frontendUrl = env('APP_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:5173'));
-        $verificationUrl = rtrim($frontendUrl, '/') . '/auth/verify-voyageur?token=' . $token;
+        $frontendUrl = config('app.frontend_url');
+        $verificationUrl = rtrim($frontendUrl, '/').'/auth/verify-voyageur?token='.$token;
 
         try {
-            \Illuminate\Support\Facades\Mail::to($user->email)->send(
-                new \App\Mail\VoyageurAccountValidatedMail($voyageur, $verificationUrl)
+            Mail::to($user->email)->send(
+                new VoyageurAccountValidatedMail($voyageur, $verificationUrl)
             );
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erreur renvoi mail voyageur: ' . $e->getMessage());
+            Log::error('Erreur renvoi mail voyageur: '.$e->getMessage());
         }
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Un nouvel email de confirmation a été envoyé à ' . $user->email . ' avec succès !',
+            'message' => 'Un nouvel email de confirmation a été envoyé à '.$user->email.' avec succès !',
             'verification_url' => $verificationUrl,
         ]);
     }
-
-
 
     /**
      * Connexion JWT par email ou numéro de téléphone.
@@ -198,6 +198,7 @@ class AuthController extends Controller
 
         if ($user->statut === 'suspendu') {
             auth('api')->logout();
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Votre compte a été suspendu ou bloqué par un administrateur.',
@@ -276,7 +277,7 @@ class AuthController extends Controller
         $roles = $user->getRoleNames();
         $isAdmin = $roles->contains('admin');
 
-        $isVoyageurVerifie = $user->voyageur && $user->voyageur->statut === 'verifie' && !empty($user->voyageur->email_verifie_at);
+        $isVoyageurVerifie = $user->voyageur && $user->voyageur->statut === 'verifie' && ! empty($user->voyageur->email_verifie_at);
 
         $modeActuel = 'client';
         if ($isAdmin) {

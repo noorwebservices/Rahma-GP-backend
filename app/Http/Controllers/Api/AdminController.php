@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\VoyageurAccountValidatedMail;
 use App\Models\Client;
 use App\Models\DemandePartenariat;
+use App\Models\Evaluation;
 use App\Models\Message;
 use App\Models\Paiement;
 use App\Models\Reservation;
@@ -136,6 +137,7 @@ class AdminController extends Controller
             $userArray = $user->toArray();
             $dataSize = $this->calculateUserDataSize($user);
             $userArray['capacite_donnees'] = $dataSize;
+
             return $userArray;
         });
 
@@ -171,13 +173,13 @@ class AdminController extends Controller
         }
 
         // Obtenir toutes les évaluations / avis reçus par cet utilisateur
-        $evaluationsRecues = \App\Models\Evaluation::where('evalue_id', $user->id)
+        $evaluationsRecues = Evaluation::where('evalue_id', $user->id)
             ->with(['evaluateur', 'reservation.voyage'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         $avgNote = $evaluationsRecues->avg('note');
-        $noteMoyenne = $avgNote ? round((float)$avgNote, 1) : 5.0;
+        $noteMoyenne = $avgNote ? round((float) $avgNote, 1) : 5.0;
 
         // Calculer l'empreinte de stockage BD
         $dataSize = $this->calculateUserDataSize($user);
@@ -215,8 +217,8 @@ class AdminController extends Controller
             'statut' => $newStatut,
         ]);
 
-        $message = $newStatut === 'suspendu' 
-            ? 'Votre compte a été temporairement suspendu par un administrateur.' 
+        $message = $newStatut === 'suspendu'
+            ? 'Votre compte a été temporairement suspendu par un administrateur.'
             : 'Votre compte a été réactivé avec succès.';
 
         NotificationService::send(
@@ -258,7 +260,7 @@ class AdminController extends Controller
 
         $messageNotification = match ($validated['statut']) {
             'verifie' => 'Félicitations, votre compte voyageur a été vérifié avec succès par l\'administration.',
-            'refuse' => 'Votre demande de vérification de compte voyageur a été refusée.' . ($validated['motif_refus'] ? ' Motif : ' . $validated['motif_refus'] : ''),
+            'refuse' => 'Votre demande de vérification de compte voyageur a été refusée.'.($validated['motif_refus'] ? ' Motif : '.$validated['motif_refus'] : ''),
             default => 'Le statut de votre compte voyageur est en attente de vérification.',
         };
 
@@ -274,12 +276,12 @@ class AdminController extends Controller
             $user = $voyageur->user;
             if ($user && $user->email && $validated['statut'] === 'verifie') {
                 try {
-                    $frontendUrl = env('APP_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:5173'));
-                    $verificationUrl = rtrim($frontendUrl, '/') . '/auth/verify-voyageur?token=' . $token;
+                    $frontendUrl = config('app.frontend_url');
+                    $verificationUrl = rtrim($frontendUrl, '/').'/auth/verify-voyageur?token='.$token;
 
                     Mail::to($user->email)->send(new VoyageurAccountValidatedMail($voyageur, $verificationUrl));
                 } catch (\Exception $e) {
-                    Log::error("Erreur lors de l'envoi de l'email de validation voyageur: " . $e->getMessage());
+                    Log::error("Erreur lors de l'envoi de l'email de validation voyageur: ".$e->getMessage());
                 }
             }
 
@@ -462,7 +464,7 @@ class AdminController extends Controller
                     $reservationsDetail[] = [
                         'id' => $res->id,
                         'code_suivi' => $res->code_suivi ?? $res->numero ?? substr($res->id, 0, 8),
-                        'client_nom' => $clientUser ? ($clientUser->prenom . ' ' . $clientUser->nom) : 'Client',
+                        'client_nom' => $clientUser ? ($clientUser->prenom.' '.$clientUser->nom) : 'Client',
                         'statut' => $res->statut,
                         'poids_kg' => $poidsColis,
                         'messages_count' => $msgCount,

@@ -50,27 +50,27 @@ class WavePaymentController extends Controller
         $apiKey = config('services.wave.api_key');
         $baseUrl = config('services.wave.base_url', 'https://api.wave.com/v1');
         $currency = config('services.wave.currency', 'XOF');
-        $frontendUrl = env('APP_FRONTEND_URL', 'https://app.rahmadelivery.com');
+        $frontendUrl = config('app.frontend_url');
         $host = parse_url($frontendUrl, PHP_URL_HOST);
         if (! $host || str_contains($host, 'localhost') || str_contains($host, '127.0.0.1')) {
-            $frontendUrl = 'https://app.rahmadelivery.com';
+            $frontendUrl = 'https://rahmadelivery.com';
         }
 
-        $errorUrl = $frontendUrl . '/client/booking/step-4?error=wave&reservation=' . $reservation->id;
-        $successUrl = $frontendUrl . '/client/messages?success=wave&reservation=' . $reservation->id;
+        $errorUrl = $frontendUrl.'/client/booking/step-4?error=wave&reservation='.$reservation->id;
+        $successUrl = $frontendUrl.'/client/messages?success=wave&reservation='.$reservation->id;
 
         if (str_starts_with($errorUrl, 'http://')) {
-            $errorUrl = 'https://' . substr($errorUrl, 7);
+            $errorUrl = 'https://'.substr($errorUrl, 7);
         }
         if (str_starts_with($successUrl, 'http://')) {
-            $successUrl = 'https://' . substr($successUrl, 7);
+            $successUrl = 'https://'.substr($successUrl, 7);
         }
 
         // 3. Appel à l'API Wave Checkout Session
         try {
             $response = Http::withToken($apiKey)
                 ->acceptJson()
-                ->post($baseUrl . '/checkout/sessions', [
+                ->post($baseUrl.'/checkout/sessions', [
                     'amount' => (string) (int) round($montant),
                     'currency' => $currency,
                     'error_url' => $errorUrl,
@@ -105,7 +105,7 @@ class WavePaymentController extends Controller
                 ['reservation_id' => $reservation->id],
                 [
                     'montant' => $montant,
-                    'reference' => $sessionId ?? ('WAVE-' . strtoupper(Str::random(10))),
+                    'reference' => $sessionId ?? ('WAVE-'.strtoupper(Str::random(10))),
                     'mode_paiement' => 'wave',
                     'statut' => 'en_attente',
                     'confirme_par' => $user->id,
@@ -163,7 +163,7 @@ class WavePaymentController extends Controller
 
             try {
                 $response = Http::withToken($apiKey)
-                    ->get($baseUrl . '/checkout/sessions/' . $paiement->reference);
+                    ->get($baseUrl.'/checkout/sessions/'.$paiement->reference);
 
                 if ($response->successful()) {
                     $session = $response->json();
@@ -224,7 +224,7 @@ class WavePaymentController extends Controller
                         $paiement = Paiement::create([
                             'reservation_id' => $reservation->id,
                             'montant' => $montant,
-                            'reference' => $sessionId ?? ('WAVE-' . strtoupper(Str::random(10))),
+                            'reference' => $sessionId ?? ('WAVE-'.strtoupper(Str::random(10))),
                             'mode_paiement' => 'wave',
                             'statut' => 'en_attente',
                         ]);
@@ -279,13 +279,16 @@ class WavePaymentController extends Controller
     private function executeAutomaticWavePayoutToVoyageur(Reservation $reservation, float $montant): void
     {
         $voyageur = $reservation->voyage->voyageur ?? null;
-        if (! $voyageur) return;
+        if (! $voyageur) {
+            return;
+        }
 
         $user = $voyageur->user ?? null;
         $phone = $user->telephone ?? $voyageur->telephone ?? null;
 
         if (! $phone) {
-            Log::warning('Wave Payout impossible : Numéro de téléphone du voyageur manquant pour la réservation ' . $reservation->id);
+            Log::warning('Wave Payout impossible : Numéro de téléphone du voyageur manquant pour la réservation '.$reservation->id);
+
             return;
         }
 
@@ -293,9 +296,9 @@ class WavePaymentController extends Controller
         $cleanPhone = preg_replace('/[^0-9+]/', '', $phone);
         if (! str_starts_with($cleanPhone, '+')) {
             if (str_starts_with($cleanPhone, '221') || str_starts_with($cleanPhone, '225')) {
-                $cleanPhone = '+' . $cleanPhone;
+                $cleanPhone = '+'.$cleanPhone;
             } else {
-                $cleanPhone = '+221' . ltrim($cleanPhone, '0');
+                $cleanPhone = '+221'.ltrim($cleanPhone, '0');
             }
         }
 
@@ -305,11 +308,11 @@ class WavePaymentController extends Controller
         try {
             $response = Http::withToken($apiKey)
                 ->acceptJson()
-                ->post($baseUrl . '/transfers', [
+                ->post($baseUrl.'/transfers', [
                     'amount' => (string) $montant,
                     'currency' => config('services.wave.currency', 'XOF'),
                     'mobile' => $cleanPhone,
-                    'client_reference' => 'PAYOUT-' . $reservation->id,
+                    'client_reference' => 'PAYOUT-'.$reservation->id,
                 ]);
 
             if ($response->successful()) {
@@ -416,7 +419,7 @@ class WavePaymentController extends Controller
             return false;
         }
 
-        $signedPayload = $timestamp . '.' . $payload;
+        $signedPayload = $timestamp.'.'.$payload;
         $expectedSignature = hash_hmac('sha256', $signedPayload, $secret);
 
         return hash_equals($expectedSignature, $signature);
