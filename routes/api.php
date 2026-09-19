@@ -8,12 +8,14 @@ use App\Http\Controllers\Api\ColisController;
 use App\Http\Controllers\Api\DemandePartenariatController;
 use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\MonitoringController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaiementController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\RevenusVoyageurController;
 use App\Http\Controllers\Api\SignalementController;
+use App\Http\Controllers\Api\TrackController;
 use App\Http\Controllers\Api\VoyageController;
 use App\Http\Controllers\Api\WavePaymentController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +31,9 @@ Route::post('demandes-partenariat', [DemandePartenariatController::class, 'store
 
 // Suivi public de colis
 Route::get('colis/suivi/{numero_suivi}', [ColisController::class, 'suiviPublic']);
+
+// Tracking des visites (analytics maison) — public, limité pour éviter le spam
+Route::post('track', [TrackController::class, 'store'])->middleware('throttle:120,1');
 
 // Évaluations publiques d'un voyageur
 Route::get('voyageurs/{voyageur}/evaluations', [EvaluationController::class, 'indexForVoyageur']);
@@ -174,6 +179,17 @@ Route::middleware('auth:api')->group(function () {
         Route::get('demandes-partenariat', [AdminController::class, 'demandesPartenariat']);
         Route::patch('demandes-partenariat/{demande}/statut', [AdminController::class, 'updateDemandePartenariatStatut']);
         Route::get('voyageurs-stats', [AdminController::class, 'voyageursStats']);
+
+        // Supervision / Monitoring analytics
+        Route::prefix('monitoring')->group(function () {
+            Route::get('overview', [MonitoringController::class, 'overview']);
+            Route::get('countries', [MonitoringController::class, 'countries']);
+            Route::get('countries/{code}', [MonitoringController::class, 'countryDetail']);
+            Route::get('active-users', [MonitoringController::class, 'activeUsers']);
+            Route::get('users/{user}/activity', [MonitoringController::class, 'userActivity']);
+            Route::get('pages', [MonitoringController::class, 'pages']);
+            Route::get('realtime', [MonitoringController::class, 'realtime']);
+        });
     });
 
     // Notifications
