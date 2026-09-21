@@ -41,7 +41,7 @@ Route::get('voyageurs/{voyageur}/evaluations', [EvaluationController::class, 'in
 // Routes publiques d'authentification
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::get('verify-voyageur/{token}', [AuthController::class, 'verifyVoyageur'])->middleware('throttle:10,1');
 });
 
