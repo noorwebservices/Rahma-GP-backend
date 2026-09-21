@@ -4,6 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 class RegisterRequest extends FormRequest
 {
@@ -21,7 +22,7 @@ class RegisterRequest extends FormRequest
             'prenom' => ['required', 'string', 'max:255'],
             'telephone' => ['required', 'string', 'max:50', 'unique:users,telephone'],
             'email' => [$isVoyageur ? 'required' : 'nullable', 'string', 'email', 'max:255', 'unique:users,email'],
-            'mot_de_passe' => ['required', 'string', 'min:6'],
+            'mot_de_passe' => ['required', 'string', Password::min(8)->letters()->numbers()],
             'adresse' => ['nullable', 'string'],
             'avatar' => ['nullable', 'sometimes'],
             'profile_type' => ['nullable', 'string', 'in:client,voyageur'],
