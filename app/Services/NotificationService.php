@@ -23,4 +23,16 @@ class NotificationService
             'lu' => false,
         ]);
     }
+
+    /**
+     * Envoie une notification à tous les administrateurs.
+     */
+    public static function notifyAdmins(string $titre, string $contenu, string $type = 'admin'): void
+    {
+        User::whereHas('roles', function ($query) {
+            $query->where('name', 'admin');
+        })->get()->each(function (User $admin) use ($titre, $contenu, $type) {
+            self::send($admin->id, $titre, $contenu, $type);
+        });
+    }
 }

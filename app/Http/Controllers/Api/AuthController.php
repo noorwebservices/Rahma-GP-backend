@@ -9,6 +9,7 @@ use App\Mail\VoyageurAccountValidatedMail;
 use App\Models\Client;
 use App\Models\User;
 use App\Models\Voyageur;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -84,6 +85,12 @@ class AuthController extends Controller
         });
 
         if ($user->voyageur) {
+            NotificationService::notifyAdmins(
+                'Nouveau compte Voyageur (GP)',
+                "{$user->prenom} {$user->nom} vient de créer un compte voyageur (GP) et attend une vérification.",
+                'voyageur_inscription'
+            );
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Inscription Voyageur réussie. Votre dossier a été transmis à l\'administration.',

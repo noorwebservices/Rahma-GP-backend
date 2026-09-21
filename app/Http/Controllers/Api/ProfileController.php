@@ -8,8 +8,8 @@ use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Models\Client;
 use App\Models\User;
 use App\Models\Voyageur;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -40,14 +40,14 @@ class ProfileController extends Controller
         $user = auth('api')->user();
         $validated = $request->validated();
 
-        if (!empty($validated['mot_de_passe'])) {
-            if (empty($validated['mot_de_passe_actuel']) || !Hash::check($validated['mot_de_passe_actuel'], $user->mot_de_passe)) {
+        if (! empty($validated['mot_de_passe'])) {
+            if (empty($validated['mot_de_passe_actuel']) || ! Hash::check($validated['mot_de_passe_actuel'], $user->mot_de_passe)) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Le mot de passe actuel est incorrect.',
                     'errors' => [
-                        'mot_de_passe_actuel' => ['Le mot de passe actuel est incorrect.']
-                    ]
+                        'mot_de_passe_actuel' => ['Le mot de passe actuel est incorrect.'],
+                    ],
                 ], 422);
             }
         }
@@ -66,7 +66,7 @@ class ProfileController extends Controller
             'telephone' => $validated['telephone'] ?? $user->telephone,
             'adresse' => array_key_exists('adresse', $validated) ? $validated['adresse'] : $user->adresse,
             'avatar' => $avatarPath,
-            'mot_de_passe' => !empty($validated['mot_de_passe']) ? $validated['mot_de_passe'] : null,
+            'mot_de_passe' => ! empty($validated['mot_de_passe']) ? $validated['mot_de_passe'] : null,
         ], fn ($value) => $value !== null));
 
         $user->load(['client', 'voyageur', 'roles']);
@@ -96,7 +96,7 @@ class ProfileController extends Controller
 
         $client = DB::transaction(function () use ($user) {
             Role::firstOrCreate(['name' => 'client', 'guard_name' => 'api']);
-            if (!$user->hasRole('client', 'api')) {
+            if (! $user->hasRole('client', 'api')) {
                 $user->assignRole(Role::findByName('client', 'api'));
             }
 
@@ -140,7 +140,7 @@ class ProfileController extends Controller
 
         $voyageur = DB::transaction(function () use ($user, $validated, $cniRectoPath, $cniVersoPath) {
             Role::firstOrCreate(['name' => 'voyageur', 'guard_name' => 'api']);
-            if (!$user->hasRole('voyageur', 'api')) {
+            if (! $user->hasRole('voyageur', 'api')) {
                 $user->assignRole(Role::findByName('voyageur', 'api'));
             }
 
@@ -156,6 +156,14 @@ class ProfileController extends Controller
                 ]
             );
         });
+
+        if ($voyageur->wasRecentlyCreated) {
+            NotificationService::notifyAdmins(
+                'Nouveau compte Voyageur (GP)',
+                "{$user->prenom} {$user->nom} vient d'activer un profil voyageur (GP) et attend une vérification.",
+                'voyageur_inscription'
+            );
+        }
 
         $user->load(['client', 'voyageur', 'roles']);
 
@@ -175,7 +183,7 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = auth('api')->user();
 
-        if (!$user->voyageur) {
+        if (! $user->voyageur) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Seul un utilisateur avec un profil Voyageur peut basculer de mode.',
@@ -190,7 +198,7 @@ class ProfileController extends Controller
         }
 
         $voyageur = $user->voyageur;
-        $voyageur->mode_client = !$voyageur->mode_client;
+        $voyageur->mode_client = ! $voyageur->mode_client;
         $voyageur->save();
 
         $modeActuel = $voyageur->mode_client ? 'client' : 'voyageur';
@@ -208,7 +216,7 @@ class ProfileController extends Controller
      */
     protected function formatUserResponse(User $user): array
     {
-        $isVoyageurVerifie = $user->voyageur && $user->voyageur->statut === 'verifie' && !empty($user->voyageur->email_verifie_at);
+        $isVoyageurVerifie = $user->voyageur && $user->voyageur->statut === 'verifie' && ! empty($user->voyageur->email_verifie_at);
 
         return [
             'id' => $user->id,
