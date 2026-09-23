@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateColisStatutRequest;
 use App\Http\Resources\ColisResource;
 use App\Models\Colis;
 use App\Models\Suivi_colis;
+use App\Models\Voyage;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -124,7 +125,7 @@ class ColisController extends Controller
         }
 
         // Auto-fermer les voyages dont la date de départ est passée
-        \App\Models\Voyage::closePastVoyages();
+        Voyage::closePastVoyages();
 
         $voyage = $colis->reservation->voyage->fresh();
         $nouveauStatut = $request->statut;

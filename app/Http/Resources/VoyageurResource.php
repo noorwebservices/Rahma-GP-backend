@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Evaluation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,7 +15,7 @@ class VoyageurResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $evaluationsQuery = \App\Models\Evaluation::where('evalue_id', $this->user_id);
+        $evaluationsQuery = Evaluation::where('evalue_id', $this->user_id);
         $moyenne = round((float) ($evaluationsQuery->avg('note') ?? 0), 2);
         $total = $evaluationsQuery->count();
 

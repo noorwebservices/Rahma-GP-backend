@@ -3,9 +3,16 @@
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdresseDepotController;
 use App\Http\Controllers\Api\AdresseRecuperationController;
+use App\Http\Controllers\Api\AgentOperationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ColisController;
 use App\Http\Controllers\Api\DemandePartenariatController;
+use App\Http\Controllers\Api\EntrepriseActivityController;
+use App\Http\Controllers\Api\EntrepriseAgentController;
+use App\Http\Controllers\Api\EntrepriseAuthController;
+use App\Http\Controllers\Api\EntrepriseDashboardController;
+use App\Http\Controllers\Api\EntrepriseDiscussionController;
+use App\Http\Controllers\Api\EntrepriseVoyageController;
 use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\MonitoringController;
@@ -38,11 +45,16 @@ Route::post('track', [TrackController::class, 'store'])->middleware('throttle:12
 // Évaluations publiques d'un voyageur
 Route::get('voyageurs/{voyageur}/evaluations', [EvaluationController::class, 'indexForVoyageur']);
 
-// Routes publiques d'authentification
+// Routes publiques d'authentification et inscription Entreprise GP & Agents
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::get('verify-voyageur/{token}', [AuthController::class, 'verifyVoyageur'])->middleware('throttle:10,1');
+
+    // Profil Entreprise GP - Inscription gérant + entreprise & Inscription Agent par token
+    Route::post('entreprise/register', [EntrepriseAuthController::class, 'register'])->middleware('throttle:5,1');
+    Route::get('verify-entreprise/{token}', [EntrepriseAuthController::class, 'verifyEntreprise'])->middleware('throttle:10,1');
+    Route::post('agent/register-with-token', [EntrepriseAgentController::class, 'registerWithToken']);
 });
 
 // Routes protégées par JWT (auth:api)
@@ -213,6 +225,59 @@ Route::middleware('auth:api')->group(function () {
     // Revenus Voyageur
     Route::get('revenus', [RevenusVoyageurController::class, 'index']);
     Route::post('revenus/retrait', [RevenusVoyageurController::class, 'retirer']);
+
+    // ==========================================
+    // ROUTES PROFIL ENTREPRISE GP (V2)
+    // ==========================================
+    Route::prefix('entreprise')->group(function () {
+        // Profil Entreprise & Vérification
+        Route::get('profile', [EntrepriseAuthController::class, 'profile']);
+        Route::put('profile', [EntrepriseAuthController::class, 'updateProfile']);
+        Route::post('resend-verification', [EntrepriseAuthController::class, 'resendVerification']);
+
+        // Corbeille (Trash) & Restauration
+        Route::get('trash', [EntrepriseAuthController::class, 'trash']);
+        Route::post('{id}/restore', [EntrepriseAuthController::class, 'restore']);
+        Route::delete('{id}/force-delete', [EntrepriseAuthController::class, 'forceDelete']);
+
+        // Gestion des Agents GP (Gérant)
+        Route::get('agents', [EntrepriseAgentController::class, 'index']);
+        Route::post('agents/direct-create', [EntrepriseAgentController::class, 'directCreate']);
+        Route::post('agents/invite', [EntrepriseAgentController::class, 'invite']);
+        Route::put('agents/{id}/statut', [EntrepriseAgentController::class, 'updateStatus']);
+        Route::delete('agents/{id}', [EntrepriseAgentController::class, 'destroy']);
+
+        // Voyages & Affectation Agents
+        Route::get('voyages', [EntrepriseVoyageController::class, 'index']);
+        Route::post('voyages', [EntrepriseVoyageController::class, 'store']);
+        Route::put('voyages/{id}/assign-agent', [EntrepriseVoyageController::class, 'assignAgent']);
+
+        // Supervision Discussions
+        Route::get('discussions', [EntrepriseDiscussionController::class, 'entrepriseDiscussions']);
+
+        // Dashboard & Analytics
+        Route::get('dashboard', [EntrepriseDashboardController::class, 'overview']);
+        Route::get('revenus', [EntrepriseDashboardController::class, 'revenus']);
+
+        // Audit Logs / Historique d'Activités
+        Route::get('activites', [EntrepriseActivityController::class, 'index']);
+    });
+
+    // ==========================================
+    // ROUTES AGENT GP (Vue & Opérations Agent)
+    // ==========================================
+    Route::prefix('agent')->group(function () {
+        Route::get('voyages', [EntrepriseVoyageController::class, 'agentVoyages']);
+
+        // Réservations & Suivi Colis par l'Agent
+        Route::post('reservations/{id}/accepter', [AgentOperationController::class, 'acceptReservation']);
+        Route::post('reservations/{id}/refuser', [AgentOperationController::class, 'refuseReservation']);
+        Route::put('colis/{colisId}/statut', [AgentOperationController::class, 'updateColisStatut']);
+
+        // Chat Client <-> Agent GP
+        Route::get('messages/{reservationId}', [EntrepriseDiscussionController::class, 'getMessages']);
+        Route::post('messages/{reservationId}', [EntrepriseDiscussionController::class, 'sendMessage']);
+    });
 
 });
 

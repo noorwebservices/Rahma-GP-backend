@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ReservationController extends Controller
@@ -117,7 +118,7 @@ class ReservationController extends Controller
 
             $colisData = $request->input('colis');
             $photoPath = null;
-            if (!empty($colisData['photo'])) {
+            if (! empty($colisData['photo'])) {
                 $photo = $colisData['photo'];
                 if (preg_match('/^data:image\/(\w+);base64,/', $photo, $type)) {
                     $data = substr($photo, strpos($photo, ',') + 1);
@@ -125,8 +126,8 @@ class ReservationController extends Controller
                     if (in_array($type, ['jpg', 'jpeg', 'gif', 'png', 'webp'])) {
                         $decodedData = base64_decode($data);
                         if ($decodedData !== false) {
-                            $fileName = 'colis/' . Str::random(40) . '.' . $type;
-                            \Illuminate\Support\Facades\Storage::disk('public')->put($fileName, $decodedData);
+                            $fileName = 'colis/'.Str::random(40).'.'.$type;
+                            Storage::disk('public')->put($fileName, $decodedData);
                             $photoPath = $fileName;
                         }
                     }

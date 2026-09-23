@@ -35,11 +35,10 @@ return [
         ],
     ],
     'wave' => [
-    'api_key' => env('WAVE_API_KEY'),
-    'webhook_secret' => env('WAVE_WEBHOOK_SECRET'),
-    'currency' => env('WAVE_CURRENCY', 'XOF'),
-    'base_url' => env('WAVE_BASE_URL', 'https://api.wave.com/v1'),
-],
-
+        'api_key' => env('WAVE_API_KEY'),
+        'webhook_secret' => env('WAVE_WEBHOOK_SECRET'),
+        'currency' => env('WAVE_CURRENCY', 'XOF'),
+        'base_url' => env('WAVE_BASE_URL', 'https://api.wave.com/v1'),
+    ],
 
 ];

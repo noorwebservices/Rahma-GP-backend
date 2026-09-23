@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('contenu');
             $table->string('type');
             $table->dateTime('date_envoi');
-            $table->boolean('lu')->default(false); 
+            $table->boolean('lu')->default(false);
             $table->timestamps();
         });
     }

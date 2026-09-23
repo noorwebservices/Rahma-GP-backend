@@ -3,15 +3,16 @@
 namespace App\Models;
 
 use App\Support\Media;
+use Database\Factories\MessageFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
-    /** @use HasFactory<\Database\Factories\MessageFactory> */
+    /** @use HasFactory<MessageFactory> */
     use HasFactory, HasUuids;
 
     protected $guarded = [];
@@ -32,17 +33,17 @@ class Message extends Model
             'date_heure_lecture' => 'datetime',
         ];
     }
- 
+
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
     }
- 
+
     public function expediteur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'expediteur_id');
     }
- 
+
     public function destinataire(): BelongsTo
     {
         return $this->belongsTo(User::class, 'destinataire_id');

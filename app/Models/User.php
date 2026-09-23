@@ -80,6 +80,41 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasOne(Voyageur::class);
     }
 
+    // relation avec l'Entreprise dont l'utilisateur est le gérant
+    public function entrepriseGeree(): HasOne
+    {
+        return $this->hasOne(Entreprise::class, 'gerant_user_id');
+    }
+
+    // relation avec le profil Agent GP
+    public function agentGp(): HasOne
+    {
+        return $this->hasOne(AgentGp::class);
+    }
+
+    public function isGerantEntreprise(): bool
+    {
+        return $this->hasRole('gerant_entreprise') || $this->entrepriseGeree()->exists();
+    }
+
+    public function isAgentGp(): bool
+    {
+        return $this->hasRole('agent_gp') || $this->agentGp()->exists();
+    }
+
+    public function getEntrepriseId(): ?string
+    {
+        if ($this->entrepriseGeree) {
+            return $this->entrepriseGeree->id;
+        }
+
+        if ($this->agentGp) {
+            return $this->agentGp->entreprise_id;
+        }
+
+        return null;
+    }
+
     // --- Relations vers les tables qui référencent un utilisateur ---
 
     // une notification appartient à un utilisateur. un utilisateur peut avoir plusieurs notifications.

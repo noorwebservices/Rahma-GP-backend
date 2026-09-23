@@ -2,33 +2,33 @@
 
 namespace App\Models;
 
-use Database\Factories\SuiviColisFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Suivi_colis extends Model
+class ActiviteEntreprise extends Model
 {
-    /** @use HasFactory<SuiviColisFactory> */
     use HasFactory, HasUuids;
+
+    protected $table = 'activites_entreprises';
 
     protected $guarded = [];
 
     protected function casts(): array
     {
         return [
-            'date_changement' => 'datetime',
+            'metadonnees' => 'array',
         ];
     }
 
-    public function colis(): BelongsTo
+    public function entreprise(): BelongsTo
     {
-        return $this->belongsTo(Colis::class);
+        return $this->belongsTo(Entreprise::class);
     }
 
-    public function auteur(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'mis_a_jour_par');
+        return $this->belongsTo(User::class);
     }
 }

@@ -32,10 +32,10 @@ class AdminUserSeeder extends Seeder
         $roleAdminApi = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'api']);
         $roleAdminWeb = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
-        if (!$admin->hasRole('admin', 'api')) {
+        if (! $admin->hasRole('admin', 'api')) {
             $admin->assignRole($roleAdminApi);
         }
-        if (!$admin->hasRole('admin', 'web')) {
+        if (! $admin->hasRole('admin', 'web')) {
             $admin->assignRole($roleAdminWeb);
         }
     }

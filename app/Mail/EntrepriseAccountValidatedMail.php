@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\Voyageur;
+use App\Models\Entreprise;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
@@ -10,20 +10,20 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class VoyageurAccountValidatedMail extends Mailable
+class EntrepriseAccountValidatedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public Voyageur $voyageur;
+    public Entreprise $entreprise;
 
     public string $verificationUrl;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Voyageur $voyageur, string $verificationUrl)
+    public function __construct(Entreprise $entreprise, string $verificationUrl)
     {
-        $this->voyageur = $voyageur;
+        $this->entreprise = $entreprise;
         $this->verificationUrl = $verificationUrl;
     }
 
@@ -33,7 +33,7 @@ class VoyageurAccountValidatedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Rahma GP - Validation et vérification de votre compte Voyageur',
+            subject: 'Rahma GP - Confirmation et vérification du compte Entreprise',
         );
     }
 
@@ -43,10 +43,10 @@ class VoyageurAccountValidatedMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.voyageur_validated',
+            view: 'emails.entreprise_validated',
             with: [
-                'user' => $this->voyageur->user,
-                'voyageur' => $this->voyageur,
+                'entreprise' => $this->entreprise,
+                'gerant' => $this->entreprise->gerant,
                 'verificationUrl' => $this->verificationUrl,
             ],
         );

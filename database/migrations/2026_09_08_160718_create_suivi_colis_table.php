@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('colis_id');
             $table->foreign('colis_id')->references('id')->on('colis')->onDelete('cascade');
-            
+
             $table->enum('statut', [
                 'demande_envoyee', 'reservation_acceptee', 'colis_depose',
                 'colis_pris_en_charge', 'en_transit', 'arrive', 'livre',

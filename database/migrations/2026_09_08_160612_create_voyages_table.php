@@ -32,9 +32,9 @@ return new class extends Migration
             $table->string('devise')->default('XOF');
             $table->text('description')->nullable();
             $table->json('objets_autorises')->nullable();
-            $table->json('objets_interdits')->nullable();            
+            $table->json('objets_interdits')->nullable();
             $table->enum('statut', ['brouillon', 'publie', 'complet', 'en_cours', 'termine', 'annule'])
-                  ->default('brouillon');
+                ->default('brouillon');
             $table->timestamps();
         });
     }

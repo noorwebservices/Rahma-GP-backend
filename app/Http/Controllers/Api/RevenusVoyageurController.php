@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DemandeRetraitRequest;
 use App\Http\Resources\RevenusVoyageurResource;
+use App\Models\Reservation;
 use App\Models\Revenus_voyageur;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
@@ -26,15 +27,15 @@ class RevenusVoyageurController extends Controller
 
         if ($voyageurId) {
             // Auto-création de l'entrée Revenus_voyageur si un Paiement réussi existe mais n'a pas encore de fiche revenu
-            $missingRevenuReservations = \App\Models\Reservation::whereHas('voyage', function ($q) use ($voyageurId) {
+            $missingRevenuReservations = Reservation::whereHas('voyage', function ($q) use ($voyageurId) {
                 $q->where('voyageur_id', $voyageurId);
             })
-            ->whereHas('paiement', function ($q) {
-                $q->where('statut', 'reussi');
-            })
-            ->whereDoesntHave('revenuVoyageur')
-            ->with('paiement')
-            ->get();
+                ->whereHas('paiement', function ($q) {
+                    $q->where('statut', 'reussi');
+                })
+                ->whereDoesntHave('revenuVoyageur')
+                ->with('paiement')
+                ->get();
 
             foreach ($missingRevenuReservations as $resItem) {
                 Revenus_voyageur::create([

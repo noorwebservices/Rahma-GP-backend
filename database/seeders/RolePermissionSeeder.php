@@ -92,6 +92,19 @@ class RolePermissionSeeder extends Seeder
             'utilisateurs.gerer',
             'utilisateurs.suspendre',
             'statistiques.voir',
+
+            // Permissions Profil Entreprise GP
+            'entreprise.gerer',
+            'agents.gerer',
+            'agents.inviter',
+            'agents.creer_directement',
+            'voyages.entreprise.gerer',
+            'voyages.affecter_agent',
+            'finances.entreprise.voir',
+            'activites.entreprise.voir',
+            'discussions.entreprise.voir',
+            'voyages.agent.voir',
+            'reservations.agent.gerer',
         ];
 
         $guards = ['api', 'web'];
@@ -137,6 +150,39 @@ class RolePermissionSeeder extends Seeder
                 'guard_name' => $guard,
             ]);
             $voyageur->syncPermissions(Permission::where('guard_name', $guard)->whereIn('name', $voyageurPermissions)->get());
+
+            $gerantEntreprisePermissions = [
+                'profil.voir', 'profil.modifier', 'mode.basculer',
+                'entreprise.gerer', 'agents.gerer', 'agents.inviter', 'agents.creer_directement',
+                'voyages.creer', 'voyages.modifier', 'voyages.supprimer', 'voyages.voir', 'voyages.publier', 'voyages.gerer',
+                'voyages.entreprise.gerer', 'voyages.affecter_agent',
+                'reservations.voir', 'reservations.accepter', 'reservations.refuser', 'reservations.annuler', 'reservations.gerer',
+                'colis.voir', 'colis.modifier_statut', 'colis.gerer', 'suivis.creer', 'suivis.voir',
+                'finances.entreprise.voir', 'activites.entreprise.voir', 'discussions.entreprise.voir',
+                'paiements.voir', 'paiements.confirmer', 'messages.envoyer', 'messages.voir',
+                'evaluations.creer', 'evaluations.voir', 'revenus.voir', 'notifications.voir', 'notifications.marquer_lue',
+                'statistiques.voir',
+            ];
+
+            $gerant = Role::firstOrCreate([
+                'name' => 'gerant_entreprise',
+                'guard_name' => $guard,
+            ]);
+            $gerant->syncPermissions(Permission::where('guard_name', $guard)->whereIn('name', $gerantEntreprisePermissions)->get());
+
+            $agentGpPermissions = [
+                'profil.voir', 'profil.modifier', 'mode.basculer',
+                'voyages.agent.voir', 'voyages.voir',
+                'reservations.agent.gerer', 'reservations.voir', 'reservations.accepter', 'reservations.refuser',
+                'colis.voir', 'colis.modifier_statut', 'suivis.creer', 'suivis.voir',
+                'messages.envoyer', 'messages.voir', 'notifications.voir', 'notifications.marquer_lue',
+            ];
+
+            $agentGp = Role::firstOrCreate([
+                'name' => 'agent_gp',
+                'guard_name' => $guard,
+            ]);
+            $agentGp->syncPermissions(Permission::where('guard_name', $guard)->whereIn('name', $agentGpPermissions)->get());
 
             $admin = Role::firstOrCreate([
                 'name' => 'admin',
