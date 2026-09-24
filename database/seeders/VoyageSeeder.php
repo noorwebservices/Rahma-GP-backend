@@ -76,5 +76,73 @@ class VoyageSeeder extends Seeder
                 'statut' => 'publie',
             ]
         );
+
+        // Voyages supplémentaires : 2 par voyageur (un cette semaine, un la semaine prochaine).
+        $objetsAutorises = ['Vêtements', 'Chaussures', 'Cosmétiques', 'Documents', 'Alimentaire sec'];
+        $objetsInterdits = ['Liquides dangereux', 'Batteries lithium', 'Armes'];
+
+        $voyagesSupplementaires = [
+            // Cheikh Fall
+            [
+                'voyageur' => $voyageur1,
+                'depot' => $depotParis, 'recup' => $recupDakar,
+                'pays_depart' => 'France', 'ville_depart' => 'Paris',
+                'pays_destination' => 'Sénégal', 'ville_destination' => 'Dakar',
+                'jours' => 2, 'prix_kg' => 18.00, 'devise' => 'EUR',
+                'description' => 'Vol Paris-Dakar cette semaine, bagages sécurisés.',
+            ],
+            [
+                'voyageur' => $voyageur1,
+                'depot' => $depotDakar, 'recup' => $recupAbidjan,
+                'pays_depart' => 'Sénégal', 'ville_depart' => 'Dakar',
+                'pays_destination' => 'Côte d\'Ivoire', 'ville_destination' => 'Abidjan',
+                'jours' => 9, 'prix_kg' => 6000.00, 'devise' => 'XOF',
+                'description' => 'Trajet Dakar-Abidjan la semaine prochaine.',
+            ],
+            // Moussa Ndiaye
+            [
+                'voyageur' => $voyageur2,
+                'depot' => $depotDakar, 'recup' => $recupAbidjan,
+                'pays_depart' => 'Sénégal', 'ville_depart' => 'Dakar',
+                'pays_destination' => 'Côte d\'Ivoire', 'ville_destination' => 'Abidjan',
+                'jours' => 4, 'prix_kg' => 5500.00, 'devise' => 'XOF',
+                'description' => 'Départ Dakar-Abidjan cette semaine.',
+            ],
+            [
+                'voyageur' => $voyageur2,
+                'depot' => $depotParis, 'recup' => $recupDakar,
+                'pays_depart' => 'France', 'ville_depart' => 'Paris',
+                'pays_destination' => 'Sénégal', 'ville_destination' => 'Dakar',
+                'jours' => 11, 'prix_kg' => 17.50, 'devise' => 'EUR',
+                'description' => 'Vol Paris-Dakar la semaine prochaine.',
+            ],
+        ];
+
+        foreach ($voyagesSupplementaires as $v) {
+            Voyage::firstOrCreate(
+                [
+                    'voyageur_id' => $v['voyageur']->id,
+                    'ville_depart' => $v['ville_depart'],
+                    'ville_destination' => $v['ville_destination'],
+                    'description' => $v['description'],
+                ],
+                [
+                    'adresse_depot_id' => $v['depot']->id,
+                    'adresse_recuperation_id' => $v['recup']->id,
+                    'pays_depart' => $v['pays_depart'],
+                    'pays_destination' => $v['pays_destination'],
+                    'date_depart' => now()->addDays($v['jours'])->setHour(10)->setMinute(0),
+                    'date_arrivee' => now()->addDays($v['jours'] + 1)->setHour(16)->setMinute(0),
+                    'capacite_totale' => 40.0,
+                    'capacite_dispo' => 35.0,
+                    'prix_kg' => $v['prix_kg'],
+                    'prix_objet' => $v['prix_kg'] * 2,
+                    'devise' => $v['devise'],
+                    'objets_autorises' => $objetsAutorises,
+                    'objets_interdits' => $objetsInterdits,
+                    'statut' => 'publie',
+                ]
+            );
+        }
     }
 }
