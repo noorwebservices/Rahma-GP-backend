@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreVoyageRequest;
 use App\Http\Requests\UpdateVoyageRequest;
+use App\Http\Resources\PublicVoyageResource;
 use App\Http\Resources\VoyageResource;
 use App\Models\Adresse_depot;
 use App\Models\Adresse_recuperation;
@@ -87,6 +88,55 @@ class VoyageController extends Controller
             'status' => 'success',
             'message' => 'Liste des voyages récupérée avec succès.',
             'data' => VoyageResource::collection($voyages),
+        ]);
+    }
+
+    /**
+     * Liste publique des voyages publiés (accessible sans authentification).
+     */
+    public function publicIndex(Request $request): JsonResponse
+    {
+        Voyage::closePastVoyages();
+
+        $query = Voyage::with(['adresseDepot', 'adresseRecuperation', 'voyageur.user'])
+            ->where('statut', 'publie')
+            ->where('date_depart', '>=', now());
+
+        foreach (['ville_depart', 'ville_destination', 'pays_depart', 'pays_destination'] as $champ) {
+            if ($request->filled($champ)) {
+                $query->where($champ, 'like', '%'.$request->query($champ).'%');
+            }
+        }
+
+        if ($request->filled('date_depart')) {
+            $query->whereDate('date_depart', '>=', $request->query('date_depart'));
+        }
+
+        $voyages = $query->orderBy('date_depart')->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => PublicVoyageResource::collection($voyages),
+        ]);
+    }
+
+    /**
+     * Détail public d'un voyage publié (accessible sans authentification).
+     */
+    public function publicShow(Voyage $voyage): JsonResponse
+    {
+        if ($voyage->statut !== 'publie') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ce voyage n\'est pas disponible.',
+            ], 404);
+        }
+
+        $voyage->load(['adresseDepot', 'adresseRecuperation', 'voyageur.user']);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => new PublicVoyageResource($voyage),
         ]);
     }
 

@@ -38,6 +38,10 @@ Route::post('track', [TrackController::class, 'store'])->middleware('throttle:12
 // Évaluations publiques d'un voyageur
 Route::get('voyageurs/{voyageur}/evaluations', [EvaluationController::class, 'indexForVoyageur']);
 
+// Voyages publics (annonces consultables sans compte)
+Route::get('voyages/publics', [VoyageController::class, 'publicIndex']);
+Route::get('voyages/publics/{voyage}', [VoyageController::class, 'publicShow']);
+
 // Routes publiques d'authentification
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
