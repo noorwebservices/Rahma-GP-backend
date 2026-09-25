@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmation du compte Entreprise GP - Rahma Delivery</title>
+    <title>Validation de votre compte Entreprise GP - Rahma GP</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -32,6 +32,7 @@
             margin: 0;
             font-size: 24px;
             font-weight: 700;
+            letter-spacing: -0.5px;
         }
         .header p {
             margin: 6px 0 0 0;
@@ -56,6 +57,7 @@
             padding: 4px 12px;
             border-radius: 9999px;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
             margin-bottom: 16px;
         }
         .text {
@@ -76,6 +78,11 @@
             border-radius: 12px;
             font-weight: 700;
             font-size: 15px;
+            box-shadow: 0 4px 12px rgba(5, 55, 84, 0.25);
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #0284c7;
         }
         .link-alt {
             font-size: 12px;
@@ -97,25 +104,25 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Rahma Delivery</h1>
+            <h1>Rahma GP</h1>
             <p>Plateforme pour Entreprises GP & Transporteurs</p>
         </div>
         <div class="body-content">
-            <div class="badge">Vérification de l'adresse E-mail</div>
+            <div class="badge">Compte Validé par l'Administration</div>
             <div class="greeting">Bonjour {{ $gerant->prenom }} {{ $gerant->nom }},</div>
             <p class="text">
-                Votre entreprise <strong>{{ $entreprise->nom }}</strong> a bien été enregistrée sur la plateforme Rahma Delivery.
+                Bonne nouvelle ! Votre entreprise <strong>{{ $entreprise->nom }}</strong> a été examinée et validée par notre équipe administrative.
             </p>
             <p class="text">
-                Veuillez cliquer sur le bouton ci-dessous afin de confirmer l'adresse e-mail de votre entreprise et finaliser la vérification de votre compte :
+                Afin d'activer définitivement l'accès à votre espace entreprise et confirmer votre adresse email professionnelle, veuillez cliquer sur le bouton ci-dessous pour vérifier qu'il s'agit bien de vous :
             </p>
             
             <div class="cta-container">
-                <a href="{{ $verificationUrl }}" class="btn" target="_blank">Confirmer l'E-mail de l'Entreprise</a>
+                <a href="{{ $verificationUrl }}" class="btn" target="_blank">Confirmer et Vérifier mon Compte</a>
             </div>
 
             <p class="text" style="font-size: 13px; color: #64748b;">
-                Une fois cette étape validée, vous pourrez gérer vos agents GP, publier des voyages d'entreprise et suivre l'ensemble de vos opérations.
+                Une fois la vérification effectuée, vous pourrez gérer vos agents GP, publier des voyages d'entreprise et suivre l'ensemble de vos opérations.
             </p>
 
             <div class="link-alt">
@@ -124,8 +131,10 @@
             </div>
         </div>
         <div class="footer">
-            &copy; {{ date('Y') }} Rahma Delivery. Tous droits réservés.
+            &copy; {{ date('Y') }} Rahma GP. Tous droits réservés.<br>
+            Ceci est un message automatique, merci de ne pas y répondre directement.
         </div>
     </div>
 </body>
 </html>
+

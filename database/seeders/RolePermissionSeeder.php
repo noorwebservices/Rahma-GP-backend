@@ -158,6 +158,8 @@ class RolePermissionSeeder extends Seeder
                 'voyages.entreprise.gerer', 'voyages.affecter_agent',
                 'reservations.voir', 'reservations.accepter', 'reservations.refuser', 'reservations.annuler', 'reservations.gerer',
                 'colis.voir', 'colis.modifier_statut', 'colis.gerer', 'suivis.creer', 'suivis.voir',
+                'adresse_depots.creer', 'adresse_depots.voir', 'adresse_depots.modifier', 'adresse_depots.supprimer',
+                'adresse_recuperations.creer', 'adresse_recuperations.voir', 'adresse_recuperations.modifier', 'adresse_recuperations.supprimer',
                 'finances.entreprise.voir', 'activites.entreprise.voir', 'discussions.entreprise.voir',
                 'paiements.voir', 'paiements.confirmer', 'messages.envoyer', 'messages.voir',
                 'evaluations.creer', 'evaluations.voir', 'revenus.voir', 'notifications.voir', 'notifications.marquer_lue',
@@ -175,6 +177,8 @@ class RolePermissionSeeder extends Seeder
                 'voyages.agent.voir', 'voyages.voir',
                 'reservations.agent.gerer', 'reservations.voir', 'reservations.accepter', 'reservations.refuser',
                 'colis.voir', 'colis.modifier_statut', 'suivis.creer', 'suivis.voir',
+                'adresse_depots.creer', 'adresse_depots.voir', 'adresse_depots.modifier', 'adresse_depots.supprimer',
+                'adresse_recuperations.creer', 'adresse_recuperations.voir', 'adresse_recuperations.modifier', 'adresse_recuperations.supprimer',
                 'messages.envoyer', 'messages.voir', 'notifications.voir', 'notifications.marquer_lue',
             ];
 

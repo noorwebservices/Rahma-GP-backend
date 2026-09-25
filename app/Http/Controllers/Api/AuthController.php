@@ -212,6 +212,41 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Vérification pour le profil Gérant d'Entreprise GP
+        if ($user->isGerantEntreprise()) {
+            $entreprise = $user->entrepriseGeree;
+            if ($entreprise) {
+                if ($entreprise->statut_verification === 'en_attente') {
+                    auth('api')->logout();
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Votre compte Entreprise GP est en attente de validation par l\'administration. Veuillez consulter régulièrement votre boîte e-mail.',
+                        'require_verification' => true,
+                    ], 403);
+                }
+
+                if ($entreprise->statut_verification === 'refusee') {
+                    auth('api')->logout();
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Votre demande d\'inscription Entreprise GP a été refusée par l\'administration.',
+                    ], 403);
+                }
+
+                if (empty($entreprise->email_verifie_at)) {
+                    auth('api')->logout();
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Votre compte Entreprise GP a été validé par l\'administration ! Veuillez vérifier votre boîte e-mail et cliquer sur le lien d\'activation avant de vous connecter.',
+                        'require_email_verification' => true,
+                    ], 403);
+                }
+            }
+        }
+
         // Mettre à jour la date de dernière connexion
         $user->update([
             'dernier_connexion' => now(),
@@ -279,16 +314,19 @@ class AuthController extends Controller
      */
     protected function formatUserResponse(User $user): array
     {
-        $user->loadMissing(['client', 'voyageur', 'roles']);
+        $user->loadMissing(['client', 'voyageur', 'entrepriseGeree', 'roles']);
 
         $roles = $user->getRoleNames();
         $isAdmin = $roles->contains('admin');
 
         $isVoyageurVerifie = $user->voyageur && $user->voyageur->statut === 'verifie' && ! empty($user->voyageur->email_verifie_at);
+        $isEntrepriseVerifiee = $user->entrepriseGeree && $user->entrepriseGeree->statut_verification === 'verifiee' && ! empty($user->entrepriseGeree->email_verifie_at);
 
         $modeActuel = 'client';
         if ($isAdmin) {
             $modeActuel = 'admin';
+        } elseif ($user->isGerantEntreprise() && $isEntrepriseVerifiee) {
+            $modeActuel = 'entreprise';
         } elseif ($isVoyageurVerifie) {
             $modeActuel = $user->voyageur->mode_client ? 'client' : 'voyageur';
         }
@@ -306,7 +344,9 @@ class AuthController extends Controller
             'roles' => $roles,
             'client' => $user->client,
             'voyageur' => $user->voyageur,
+            'entreprise' => $user->entrepriseGeree,
             'is_voyageur_verifie' => $isVoyageurVerifie,
+            'is_entreprise_verifiee' => $isEntrepriseVerifiee,
             'mode_actuel' => $modeActuel,
         ];
     }

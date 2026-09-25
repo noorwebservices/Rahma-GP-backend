@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\Entreprise;
+use App\Models\InvitationAgent;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
@@ -10,21 +10,20 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class EntrepriseAccountValidatedMail extends Mailable
+class InvitationAgentMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public Entreprise $entreprise;
-
-    public string $verificationUrl;
+    public InvitationAgent $invitation;
+    public string $nomEntreprise;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Entreprise $entreprise, string $verificationUrl)
+    public function __construct(InvitationAgent $invitation, string $nomEntreprise = 'Rahma GP')
     {
-        $this->entreprise = $entreprise;
-        $this->verificationUrl = $verificationUrl;
+        $this->invitation = $invitation;
+        $this->nomEntreprise = $nomEntreprise;
     }
 
     /**
@@ -33,7 +32,7 @@ class EntrepriseAccountValidatedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Rahma GP - Validation et vérification de votre compte Entreprise',
+            subject: "Invitation à rejoindre l'équipe Agent GP - {$this->nomEntreprise}",
         );
     }
 
@@ -43,11 +42,11 @@ class EntrepriseAccountValidatedMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.entreprise_validated',
+            view: 'emails.invitation_agent',
             with: [
-                'entreprise' => $this->entreprise,
-                'gerant' => $this->entreprise->gerant,
-                'verificationUrl' => $this->verificationUrl,
+                'invitation' => $this->invitation,
+                'nomEntreprise' => $this->nomEntreprise,
+                'lienRegister' => $this->invitation->lien_invitation,
             ],
         );
     }

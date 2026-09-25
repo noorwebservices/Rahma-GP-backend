@@ -16,30 +16,40 @@ class AdresseRecuperationController extends Controller
     /**
      * Display a listing of the resource.
      */
+    /**
+     * Display a listing of the resource.
+     */
     public function index(Request $request): JsonResponse
     {
         /** @var User $user */
         $user = auth('api')->user();
         $voyageur = $user?->voyageur()->first();
+        $entrepriseId = $user?->getEntrepriseId();
         $isAdmin = $user?->hasRole('admin', 'api');
 
-        // Si l'utilisateur a un profil Voyageur et qu'il est en mode Voyageur (mode_client == false), il voit ses adresses créées
-        if ($voyageur && ! $voyageur->mode_client && ! $isAdmin) {
-            $adresses = Adresse_recuperation::where('voyageur_id', $voyageur->id)->latest()->get();
-        } else {
-            // Pour les clients (ou voyageurs en mode client) et admins, liste globale des adresses avec filtrage optionnel
-            $query = Adresse_recuperation::query();
+        $query = Adresse_recuperation::query();
 
-            if ($request->filled('ville')) {
-                $query->where('ville', 'like', '%'.$request->query('ville').'%');
-            }
-
-            if ($request->filled('pays')) {
-                $query->where('pays', 'like', '%'.$request->query('pays').'%');
-            }
-
-            $adresses = $query->latest()->get();
+        if (! $isAdmin) {
+            $query->where(function ($q) use ($user, $voyageur, $entrepriseId) {
+                $q->where('user_id', $user?->id);
+                if ($entrepriseId) {
+                    $q->orWhere('entreprise_id', $entrepriseId);
+                }
+                if ($voyageur) {
+                    $q->orWhere('voyageur_id', $voyageur->id);
+                }
+            });
         }
+
+        if ($request->filled('ville')) {
+            $query->where('ville', 'like', '%'.$request->query('ville').'%');
+        }
+
+        if ($request->filled('pays')) {
+            $query->where('pays', 'like', '%'.$request->query('pays').'%');
+        }
+
+        $adresses = $query->latest()->get();
 
         return response()->json([
             'status' => 'success',
@@ -56,17 +66,12 @@ class AdresseRecuperationController extends Controller
         /** @var User $user */
         $user = auth('api')->user();
         $voyageur = $user?->voyageur()->first();
-        $isAdmin = $user?->hasRole('admin', 'api');
-
-        if (! $voyageur && ! $isAdmin) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Seul un utilisateur avec un profil Voyageur valide peut ajouter une adresse de récupération.',
-            ], 403);
-        }
+        $entrepriseId = $user?->getEntrepriseId();
 
         $validated = $request->validated();
+        $validated['user_id'] = $user?->id;
         $validated['voyageur_id'] = $voyageur?->id;
+        $validated['entreprise_id'] = $entrepriseId;
 
         $adresse = Adresse_recuperation::create($validated);
 
@@ -97,12 +102,15 @@ class AdresseRecuperationController extends Controller
         /** @var User $user */
         $user = auth('api')->user();
         $voyageur = $user?->voyageur()->first();
+        $entrepriseId = $user?->getEntrepriseId();
         $isAdmin = $user?->hasRole('admin', 'api');
 
-        // Seul le voyageur propriétaire (avec voyageur_id non-null) ou un admin peut modifier
-        $isOwner = $voyageur && $adresseRecuperation->voyageur_id !== null && $adresseRecuperation->voyageur_id === $voyageur->id;
+        $isOwner = $isAdmin
+            || ($adresseRecuperation->user_id && $adresseRecuperation->user_id === $user?->id)
+            || ($entrepriseId && $adresseRecuperation->entreprise_id === $entrepriseId)
+            || ($voyageur && $adresseRecuperation->voyageur_id === $voyageur->id);
 
-        if (! $isOwner && ! $isAdmin) {
+        if (! $isOwner) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à modifier cette adresse de récupération.',
@@ -126,19 +134,21 @@ class AdresseRecuperationController extends Controller
         /** @var User $user */
         $user = auth('api')->user();
         $voyageur = $user?->voyageur()->first();
+        $entrepriseId = $user?->getEntrepriseId();
         $isAdmin = $user?->hasRole('admin', 'api');
 
-        // Seul le voyageur propriétaire (avec voyageur_id non-null) ou un admin peut supprimer
-        $isOwner = $voyageur && $adresseRecuperation->voyageur_id !== null && $adresseRecuperation->voyageur_id === $voyageur->id;
+        $isOwner = $isAdmin
+            || ($adresseRecuperation->user_id && $adresseRecuperation->user_id === $user?->id)
+            || ($entrepriseId && $adresseRecuperation->entreprise_id === $entrepriseId)
+            || ($voyageur && $adresseRecuperation->voyageur_id === $voyageur->id);
 
-        if (! $isOwner && ! $isAdmin) {
+        if (! $isOwner) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Vous n\'êtes pas autorisé à supprimer cette adresse de récupération.',
             ], 403);
         }
 
-        // Empêcher la suppression dès lors qu'elle est reliée à un voyage
         if ($adresseRecuperation->voyages()->exists()) {
             return response()->json([
                 'status' => 'error',

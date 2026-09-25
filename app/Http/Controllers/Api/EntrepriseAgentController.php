@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\InvitationAgentMail;
 use App\Models\AgentGp;
 use App\Models\InvitationAgent;
 use App\Models\User;
@@ -10,6 +11,7 @@ use App\Services\ActiviteEntrepriseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
@@ -60,17 +62,20 @@ class EntrepriseAgentController extends Controller
             'prenom' => 'required|string|max:255',
             'telephone' => 'required|string|unique:users,telephone',
             'email' => 'nullable|email|unique:users,email',
-            'mot_de_passe' => 'required|string|min:6',
+            'mot_de_passe' => 'nullable|string|min:6',
             'matricule' => 'nullable|string',
         ]);
 
-        $agent = DB::transaction(function () use ($validated, $user, $entrepriseId) {
+        $plainPassword = !empty($validated['mot_de_passe']) ? $validated['mot_de_passe'] : 'AG-'.rand(100000, 999999);
+        $matricule = !empty($validated['matricule']) ? $validated['matricule'] : 'AG-'.strtoupper(Str::random(6));
+
+        $agent = DB::transaction(function () use ($validated, $plainPassword, $matricule, $user, $entrepriseId) {
             $agentUser = User::create([
                 'nom' => $validated['nom'],
                 'prenom' => $validated['prenom'],
                 'telephone' => $validated['telephone'],
                 'email' => $validated['email'] ?? null,
-                'mot_de_passe' => $validated['mot_de_passe'],
+                'mot_de_passe' => $plainPassword,
                 'statut' => 'actif',
             ]);
 
@@ -80,7 +85,7 @@ class EntrepriseAgentController extends Controller
             $agentGp = AgentGp::create([
                 'user_id' => $agentUser->id,
                 'entreprise_id' => $entrepriseId,
-                'matricule' => $validated['matricule'] ?? 'AG-'.strtoupper(Str::random(6)),
+                'matricule' => $matricule,
                 'statut' => 'actif',
                 'date_adhesion' => now(),
                 'date_activation' => now(),
@@ -100,7 +105,45 @@ class EntrepriseAgentController extends Controller
             'status' => 'success',
             'message' => 'Agent GP créé et rattaché à l\'entreprise avec succès.',
             'agent' => $agent,
+            'generated_password' => $plainPassword,
+            'matricule' => $agent->matricule,
         ], 201);
+    }
+
+    /**
+     * Générer un nouveau mot de passe pour un Agent GP.
+     */
+    public function regeneratePassword(Request $request, string $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth('api')->user();
+
+        if (! $user->isGerantEntreprise()) {
+            return response()->json(['message' => 'Accès réservé au gérant de l\'entreprise.'], 403);
+        }
+
+        $entrepriseId = $user->getEntrepriseId();
+        $agent = AgentGp::with('user')->where('entreprise_id', $entrepriseId)->findOrFail($id);
+
+        $newPassword = 'AG-'.rand(100000, 999999);
+
+        $agent->user->update([
+            'mot_de_passe' => $newPassword,
+        ]);
+
+        ActiviteEntrepriseService::log(
+            $entrepriseId,
+            $user->id,
+            'agent.mot_de_passe_reinitialise',
+            "Le mot de passe de l'agent GP {$agent->user->prenom} {$agent->user->nom} a été réinitialisé par le gérant."
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Nouveau mot de passe généré avec succès.',
+            'generated_password' => $newPassword,
+            'agent' => $agent->fresh('user'),
+        ]);
     }
 
     /**
@@ -124,7 +167,13 @@ class EntrepriseAgentController extends Controller
         ]);
 
         $token = Str::random(40);
-        $frontendUrl = config('app.frontend_url', 'https://rahma-delivery.com');
+        $frontendUrl = env('APP_FRONTEND_URL', env('FRONTEND_URL', config('app.frontend_url', 'http://localhost:5173')));
+        
+        // S'assurer qu'en local le lien commence impérativement par http:// et non https://
+        if (str_contains($frontendUrl, 'localhost') || str_contains($frontendUrl, '127.0.0.1')) {
+            $frontendUrl = preg_replace('/^https:/i', 'http:', $frontendUrl);
+        }
+
         $lienRegister = rtrim($frontendUrl, '/')."/agent/register-invite?token={$token}";
 
         $invitation = InvitationAgent::create([
@@ -138,10 +187,20 @@ class EntrepriseAgentController extends Controller
             'expires_at' => now()->addDays(7),
         ]);
 
+        // Envoi de l'e-mail si le canal est email
+        if ($validated['canal'] === 'email' && ! empty($validated['email'])) {
+            try {
+                $nomEntreprise = $user->entrepriseGeree?->nom_entreprise ?? 'Rahma GP';
+                Mail::to($validated['email'])->send(new InvitationAgentMail($invitation, $nomEntreprise));
+            } catch (\Exception $e) {
+                \Log::error("Erreur lors de l'envoi de l'email d'invitation agent : " . $e->getMessage());
+            }
+        }
+
         $whatsappUrl = null;
         if ($validated['canal'] === 'whatsapp' && ! empty($validated['telephone'])) {
             $phoneClean = preg_replace('/[^0-9]/', '', $validated['telephone']);
-            $text = urlencode("Bonjour ! Vous avez été invité à rejoindre Rahma Delivery en tant qu'Agent GP. Cliquez sur ce lien pour activer votre compte : {$lienRegister}");
+            $text = urlencode("Bonjour ! Vous avez été invité par l'entreprise " . ($user->entrepriseGeree?->nom_entreprise ?? 'Rahma GP') . " à rejoindre l'équipe en tant qu'Agent GP. Cliquez sur ce lien pour activer votre compte : {$lienRegister}");
             $whatsappUrl = "https://wa.me/{$phoneClean}?text={$text}";
         }
 
@@ -292,6 +351,126 @@ class EntrepriseAgentController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Agent GP retiré avec succès.',
+        ]);
+    }
+
+    /**
+     * Corbeille : Liste des agents supprimés (soft delete).
+     */
+    public function trash(): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth('api')->user();
+        $entrepriseId = $user->getEntrepriseId();
+
+        $trashedAgents = AgentGp::onlyTrashed()
+            ->with('user')
+            ->where('entreprise_id', $entrepriseId)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'count' => $trashedAgents->count(),
+            'agents' => $trashedAgents,
+        ]);
+    }
+
+    /**
+     * Restauration d'un agent depuis la corbeille.
+     */
+    public function restore(string $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth('api')->user();
+
+        if (! $user->isGerantEntreprise()) {
+            return response()->json(['message' => 'Accès réservé au gérant.'], 403);
+        }
+
+        $entrepriseId = $user->getEntrepriseId();
+        $agent = AgentGp::onlyTrashed()
+            ->where('entreprise_id', $entrepriseId)
+            ->findOrFail($id);
+
+        $agent->restore();
+
+        ActiviteEntrepriseService::log(
+            $entrepriseId,
+            $user->id,
+            'agent.restaure',
+            "L'agent GP {$agent->user->prenom} {$agent->user->nom} a été restauré depuis la corbeille."
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Agent GP restauré avec succès.',
+            'agent' => $agent->fresh('user'),
+        ]);
+    }
+
+    /**
+     * Suppression définitive d'un agent de la corbeille.
+     */
+    public function forceDelete(string $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth('api')->user();
+
+        if (! $user->isGerantEntreprise()) {
+            return response()->json(['message' => 'Accès réservé au gérant.'], 403);
+        }
+
+        $entrepriseId = $user->getEntrepriseId();
+        $agent = AgentGp::onlyTrashed()
+            ->where('entreprise_id', $entrepriseId)
+            ->findOrFail($id);
+
+        $agent->forceDelete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Agent GP supprimé définitivement.',
+        ]);
+    }
+
+    /**
+     * Détails complets d'un agent GP et de son activité.
+     */
+    public function show(string $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth('api')->user();
+        $entrepriseId = $user->getEntrepriseId();
+
+        $agent = AgentGp::with(['user'])
+            ->where('entreprise_id', $entrepriseId)
+            ->findOrFail($id);
+
+        $voyages = \App\Models\Voyage::with(['adresseDepot', 'adresseRecuperation', 'reservations.client.user', 'reservations.colis'])
+            ->where('agent_gp_id', $agent->id)
+            ->latest('date_depart')
+            ->get();
+
+        $totalVoyages = $voyages->count();
+        $voyagesEnCours = $voyages->where('statut', 'en_cours')->count();
+        $voyagesTermines = $voyages->where('statut', 'termine')->count();
+
+        $allReservations = $voyages->pluck('reservations')->flatten();
+        $totalReservations = $allReservations->count();
+        $totalColis = $allReservations->whereNotNull('colis')->count();
+
+        return response()->json([
+            'status' => 'success',
+            'agent' => $agent,
+            'voyages' => $voyages,
+            'stats' => [
+                'total_voyages' => $totalVoyages,
+                'voyages_en_cours' => $voyagesEnCours,
+                'voyages_termines' => $voyagesTermines,
+                'total_reservations' => $totalReservations,
+                'total_colis' => $totalColis,
+            ],
         ]);
     }
 }

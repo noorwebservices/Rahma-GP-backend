@@ -45,6 +45,10 @@ Route::post('track', [TrackController::class, 'store'])->middleware('throttle:12
 // Évaluations publiques d'un voyageur
 Route::get('voyageurs/{voyageur}/evaluations', [EvaluationController::class, 'indexForVoyageur']);
 
+// Catalogue et détails publics des voyages (accessibles sans authentification)
+Route::get('voyages/public', [VoyageController::class, 'publicIndex']);
+Route::get('voyages/public/{voyage}', [VoyageController::class, 'publicShow']);
+
 // Routes publiques d'authentification et inscription Entreprise GP & Agents
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
@@ -186,6 +190,8 @@ Route::middleware('auth:api')->group(function () {
         Route::patch('users/{user}/block', [AdminController::class, 'toggleBlockUser']);
         Route::patch('voyageurs/{voyageur}/statut', [AdminController::class, 'updateStatutVoyageur']);
         Route::put('voyageurs/{voyageur}/statut', [AdminController::class, 'updateStatutVoyageur']);
+        Route::patch('entreprises/{entreprise}/statut', [AdminController::class, 'updateStatutEntreprise']);
+        Route::put('entreprises/{entreprise}/statut', [AdminController::class, 'updateStatutEntreprise']);
         Route::get('signalements', [AdminController::class, 'signalements']);
         Route::patch('signalements/{signalement}/statut', [AdminController::class, 'updateSignalementStatut']);
         Route::get('demandes-partenariat', [AdminController::class, 'demandesPartenariat']);
@@ -242,8 +248,13 @@ Route::middleware('auth:api')->group(function () {
 
         // Gestion des Agents GP (Gérant)
         Route::get('agents', [EntrepriseAgentController::class, 'index']);
+        Route::get('agents/trash', [EntrepriseAgentController::class, 'trash']);
+        Route::get('agents/{id}', [EntrepriseAgentController::class, 'show']);
         Route::post('agents/direct-create', [EntrepriseAgentController::class, 'directCreate']);
         Route::post('agents/invite', [EntrepriseAgentController::class, 'invite']);
+        Route::post('agents/{id}/regenerate-password', [EntrepriseAgentController::class, 'regeneratePassword']);
+        Route::post('agents/{id}/restore', [EntrepriseAgentController::class, 'restore']);
+        Route::delete('agents/{id}/force-delete', [EntrepriseAgentController::class, 'forceDelete']);
         Route::put('agents/{id}/statut', [EntrepriseAgentController::class, 'updateStatus']);
         Route::delete('agents/{id}', [EntrepriseAgentController::class, 'destroy']);
 
@@ -254,6 +265,7 @@ Route::middleware('auth:api')->group(function () {
 
         // Supervision Discussions
         Route::get('discussions', [EntrepriseDiscussionController::class, 'entrepriseDiscussions']);
+        Route::get('discussions/{reservationId}/messages', [EntrepriseDiscussionController::class, 'getMessages']);
 
         // Dashboard & Analytics
         Route::get('dashboard', [EntrepriseDashboardController::class, 'overview']);

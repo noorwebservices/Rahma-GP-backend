@@ -31,7 +31,7 @@ class UpdateVoyageRequest extends FormRequest
             'objets_autorises.*' => ['string'],
             'objets_interdits' => ['nullable', 'array'],
             'objets_interdits.*' => ['string'],
-            'statut' => ['nullable', 'string', 'in:brouillon,publie,complet,en_cours,termine,annule,ferme'],
+            'statut' => ['nullable', 'string', 'in:brouillon,publie,complet,en_cours,termine,annule'],
         ];
     }
 
@@ -74,7 +74,7 @@ class UpdateVoyageRequest extends FormRequest
             'description.max' => 'La description ne peut dépasser 1000 caractères.',
             'objets_autorises.array' => 'Les objets autorisés doivent être sous forme de liste.',
             'objets_interdits.array' => 'Les objets interdits doivent être sous forme de liste.',
-            'statut.in' => 'Le statut sélectionné est invalide. Valeurs acceptées: brouillon, publie, complet, en_cours, termine, annule, ferme.',
+            'statut.in' => 'Le statut sélectionné est invalide. Valeurs acceptées: brouillon, publie, complet, en_cours, termine, annule.',
         ];
     }
 }

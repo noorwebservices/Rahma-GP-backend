@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\EntrepriseAccountValidatedMail;
 use App\Mail\VoyageurAccountValidatedMail;
 use App\Models\Client;
 use App\Models\DemandePartenariat;
+use App\Models\Entreprise;
 use App\Models\Evaluation;
 use App\Models\Message;
 use App\Models\Paiement;
@@ -35,9 +37,10 @@ class AdminController extends Controller
         })->count();
 
         $totalClients = User::role('client')->whereDoesntHave('roles', function ($q) {
-            $q->whereIn('name', ['admin', 'voyageur']);
+            $q->whereIn('name', ['admin', 'voyageur', 'gerant_entreprise']);
         })->count();
         $totalVoyageurs = User::role('voyageur')->count();
+        $totalEntreprises = Entreprise::count();
         $totalAdmins = User::role('admin')->count();
 
         $usersActifs = User::whereDoesntHave('roles', function ($q) {
@@ -50,6 +53,9 @@ class AdminController extends Controller
 
         $voyageursEnAttente = Voyageur::where('statut', 'en_attente')->count();
         $voyageursVerifies = Voyageur::where('statut', 'verifie')->count();
+
+        $entreprisesEnAttente = Entreprise::where('statut_verification', 'en_attente')->count();
+        $entreprisesVerifies = Entreprise::where('statut_verification', 'verifiee')->count();
 
         $totalSignalements = Signalement::count();
         $signalementsEnAttente = Signalement::where('statut', 'en_attente')->count();
@@ -72,6 +78,7 @@ class AdminController extends Controller
                     'total' => $totalUsers,
                     'clients' => $totalClients,
                     'voyageurs' => $totalVoyageurs,
+                    'entreprises' => $totalEntreprises,
                     'admins' => $totalAdmins,
                     'actifs' => $usersActifs,
                     'suspendus' => $usersSuspendus,
@@ -79,6 +86,11 @@ class AdminController extends Controller
                 'voyageurs' => [
                     'en_attente' => $voyageursEnAttente,
                     'verifies' => $voyageursVerifies,
+                ],
+                'entreprises' => [
+                    'total' => $totalEntreprises,
+                    'en_attente' => $entreprisesEnAttente,
+                    'verifiees' => $entreprisesVerifies,
                 ],
                 'signalements' => [
                     'total' => $totalSignalements,
@@ -107,7 +119,7 @@ class AdminController extends Controller
      */
     public function users(Request $request): JsonResponse
     {
-        $query = User::with(['client', 'voyageur', 'roles']);
+        $query = User::with(['client', 'voyageur', 'entrepriseGeree', 'roles']);
 
         // Recherche par mot-clé
         if ($search = $request->input('search')) {
@@ -115,7 +127,10 @@ class AdminController extends Controller
                 $q->where('nom', 'like', "%{$search}%")
                     ->orWhere('prenom', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('telephone', 'like', "%{$search}%");
+                    ->orWhere('telephone', 'like', "%{$search}%")
+                    ->orWhereHas('entrepriseGeree', function ($eq) use ($search) {
+                        $eq->where('nom', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -126,7 +141,17 @@ class AdminController extends Controller
 
         // Filtre par rôle
         if ($role = $request->input('role')) {
-            $query->role($role);
+            if ($role === 'entreprise') {
+                $query->where(function ($q) {
+                    $q->role('gerant_entreprise')->orWhereHas('entrepriseGeree');
+                });
+            } elseif ($role === 'client') {
+                $query->role('client')->whereDoesntHave('roles', function ($q) {
+                    $q->whereIn('name', ['admin', 'voyageur', 'gerant_entreprise']);
+                });
+            } else {
+                $query->role($role);
+            }
         }
 
         $perPage = (int) $request->input('per_page', 15);
@@ -157,6 +182,9 @@ class AdminController extends Controller
             'voyageur.voyages.reservations.colis',
             'voyageur.voyages.reservations.messages',
             'voyageur.voyages.reservations.client.user',
+            'entrepriseGeree.agents.user',
+            'entrepriseGeree.voyages',
+            'agentGp.entreprise',
             'roles',
             'notifications',
             'signalementsFaits.signale',
@@ -291,6 +319,66 @@ class AdminController extends Controller
             'status' => 'success',
             'message' => 'Statut de vérification du voyageur mis à jour avec succès.',
             'data' => $voyageur->fresh(['user']),
+        ]);
+    }
+
+    /**
+     * Modifier le statut de vérification d'une entreprise GP (en_attente, verifiee, refusee).
+     * Envoie un email de vérification/confirmation à l'entreprise si le statut passe à 'verifiee'.
+     */
+    public function updateStatutEntreprise(Request $request, Entreprise $entreprise): JsonResponse
+    {
+        $validated = $request->validate([
+            'statut' => 'required|string|in:en_attente,verifiee,refusee',
+            'motif_refus' => 'nullable|string|max:500',
+        ]);
+
+        $updateData = [
+            'statut_verification' => $validated['statut'],
+        ];
+
+        $token = null;
+        if ($validated['statut'] === 'verifiee') {
+            $token = Str::random(60);
+            $updateData['verification_token'] = $token;
+        }
+
+        $entreprise->update($updateData);
+
+        $messageNotification = match ($validated['statut']) {
+            'verifiee' => "Félicitations, l'entreprise GP {$entreprise->nom} a été validée par l'administration. Veuillez vérifier votre boîte email pour activer votre compte.",
+            'refusee' => "Votre demande d'inscription pour l'entreprise GP {$entreprise->nom} a été refusée." . ($validated['motif_refus'] ? ' Motif : ' . $validated['motif_refus'] : ''),
+            default => "Le statut de votre entreprise GP {$entreprise->nom} est en attente de vérification.",
+        };
+
+        if ($entreprise->gerant_user_id) {
+            NotificationService::send(
+                $entreprise->gerant_user_id,
+                'Statut compte Entreprise GP mis à jour',
+                $messageNotification,
+                'systeme'
+            );
+        }
+
+        if ($validated['statut'] === 'verifiee') {
+            try {
+                $frontendUrl = env('APP_FRONTEND_URL', env('FRONTEND_URL', config('app.frontend_url', 'http://localhost:5173')));
+                $verificationUrl = rtrim($frontendUrl, '/') . '/auth/verify-entreprise?token=' . $token;
+
+                $targetEmail = !empty($entreprise->email) ? $entreprise->email : $entreprise->gerant?->email;
+
+                if ($targetEmail) {
+                    Mail::to($targetEmail)->send(new EntrepriseAccountValidatedMail($entreprise->fresh(['gerant']), $verificationUrl));
+                }
+            } catch (\Exception $e) {
+                Log::error("Erreur lors de l'envoi de l'email de validation entreprise: " . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Statut de vérification de l\'entreprise mis à jour avec succès.',
+            'data' => $entreprise->fresh(['gerant']),
         ]);
     }
 

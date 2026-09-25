@@ -54,8 +54,8 @@ class Voyage extends Model
     public static function closePastVoyages(): void
     {
         static::where('date_depart', '<', now())
-            ->whereNotIn('statut', ['ferme', 'complet', 'cloture', 'termine', 'annule'])
-            ->update(['statut' => 'ferme']);
+            ->whereNotIn('statut', ['complet', 'en_cours', 'termine', 'annule'])
+            ->update(['statut' => 'termine']);
     }
 
     public function reservations(): HasMany

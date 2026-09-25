@@ -18,6 +18,8 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
+        $reservation->loadMissing(['voyage.voyageur.user', 'voyage.entreprise', 'voyage.agentGp.user', 'entreprise', 'agentGp.user', 'client.user']);
+
         if (! $this->userIsParticipant($user, $reservation)) {
             return response()->json([
                 'message' => 'Accès non autorisé aux messages de cette réservation.',
@@ -49,11 +51,13 @@ class MessageController extends Controller
     public function store(StoreMessageRequest $request, Reservation $reservation): JsonResponse
     {
         $user = $request->user();
+        $reservation->loadMissing(['voyage.voyageur.user', 'voyage.entreprise', 'voyage.agentGp.user', 'entreprise', 'agentGp.user', 'client.user']);
+
         $destinataireId = $this->resolveDestinataireId($user, $reservation);
 
         if (! $destinataireId) {
             return response()->json([
-                'message' => 'Seuls le client et le voyageur associés à cette réservation peuvent échanger des messages.',
+                'message' => 'Seuls le client et le transporteur associés à cette réservation peuvent échanger des messages.',
             ], 403);
         }
 
@@ -104,7 +108,16 @@ class MessageController extends Controller
             return true;
         }
 
-        if ($user->voyageur && $reservation->voyage->voyageur_id === $user->voyageur->id) {
+        if ($user->voyageur && optional($reservation->voyage)->voyageur_id === $user->voyageur->id) {
+            return true;
+        }
+
+        $entrepriseId = method_exists($user, 'getEntrepriseId') ? $user->getEntrepriseId() : null;
+        if ($entrepriseId && ($reservation->entreprise_id === $entrepriseId || optional($reservation->voyage)->entreprise_id === $entrepriseId)) {
+            return true;
+        }
+
+        if ($user->agentGp && ($reservation->agent_gp_id === $user->agentGp->id || optional($reservation->voyage)->agent_gp_id === $user->agentGp->id)) {
             return true;
         }
 
@@ -113,15 +126,30 @@ class MessageController extends Controller
 
     private function resolveDestinataireId($user, Reservation $reservation): ?string
     {
+        // Si l'utilisateur actuel est le client
         if ($user->client && $reservation->client_id === $user->client->id) {
-            return $reservation->voyage->voyageur->user_id;
+            // 1. Voyageur individuel
+            if ($reservation->voyage && $reservation->voyage->voyageur && $reservation->voyage->voyageur->user_id) {
+                return $reservation->voyage->voyageur->user_id;
+            }
+            // 2. Agent GP
+            if ($reservation->agent_gp_id && optional(optional($reservation->agentGp)->user)->id) {
+                return $reservation->agentGp->user->id;
+            }
+            if ($reservation->voyage && $reservation->voyage->agent_gp_id && optional(optional($reservation->voyage->agentGp)->user)->id) {
+                return $reservation->voyage->agentGp->user->id;
+            }
+            // 3. Entreprise (Gérant)
+            if ($reservation->entreprise && $reservation->entreprise->gerant_user_id) {
+                return $reservation->entreprise->gerant_user_id;
+            }
+            if ($reservation->voyage && $reservation->voyage->entreprise && $reservation->voyage->entreprise->gerant_user_id) {
+                return $reservation->voyage->entreprise->gerant_user_id;
+            }
         }
 
-        if ($user->voyageur && $reservation->voyage->voyageur_id === $user->voyageur->id) {
-            return $reservation->client->user_id;
-        }
-
-        if ($user->hasRole('admin')) {
+        // Si l'utilisateur actuel est le voyageur, l'agent GP, le gérant de l'entreprise ou l'admin
+        if (optional($reservation->client)->user_id) {
             return $reservation->client->user_id;
         }
 

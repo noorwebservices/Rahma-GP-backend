@@ -32,7 +32,7 @@ class EntrepriseDashboardController extends Controller
         // 1. Statistiques Voyages
         $voyagesQuery = Voyage::where('entreprise_id', $entrepriseId);
         $totalVoyages = (clone $voyagesQuery)->count();
-        $voyagesAvenir = (clone $voyagesQuery)->where('date_depart', '>', now())->where('statut', 'publie')->count();
+        $voyagesAvenir = (clone $voyagesQuery)->whereIn('statut', ['publie', 'brouillon'])->count();
         $voyagesEnCours = (clone $voyagesQuery)->where('statut', 'en_cours')->count();
         $voyagesTermines = (clone $voyagesQuery)->where('statut', 'termine')->count();
         $voyagesAnnules = (clone $voyagesQuery)->where('statut', 'annule')->count();
@@ -42,9 +42,9 @@ class EntrepriseDashboardController extends Controller
             $q->where('entreprise_id', $entrepriseId);
         });
         $totalColis = (clone $colisQuery)->count();
-        $colisEnAttente = (clone $colisQuery)->where('statut', 'enregistre')->count();
-        $colisEnTransit = (clone $colisQuery)->whereIn('statut', ['receptionne', 'en_transit'])->count();
-        $colisLivres = (clone $colisQuery)->where('statut', 'livre')->count();
+        $colisEnAttente = (clone $colisQuery)->whereIn('statut', ['demande_envoyee', 'enregistre', 'en_attente', 'reservation_acceptee'])->count();
+        $colisEnTransit = (clone $colisQuery)->whereIn('statut', ['receptionne', 'colis_depose', 'colis_pris_en_charge', 'en_transit', 'arrive'])->count();
+        $colisLivres = (clone $colisQuery)->whereIn('statut', ['livre', 'livree'])->count();
         $colisAnnules = (clone $colisQuery)->where('statut', 'annule')->count();
 
         // 3. Statistiques Agents

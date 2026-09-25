@@ -164,7 +164,7 @@ class ColisController extends Controller
         // Restriction : Impossible d'utiliser (en_transit, arrive, livre) tant que le voyage n'est pas complet/fermé ou date de départ passée
         if (in_array($nouveauStatut, ['en_transit', 'arrive', 'livre', 'livree'], true)) {
             $isClosedOrCompleted = $voyage && (
-                in_array($voyage->statut, ['complet', 'ferme', 'cloture', 'termine'], true) ||
+                in_array($voyage->statut, ['complet', 'en_cours', 'termine'], true) ||
                 ($voyage->date_depart && $voyage->date_depart <= now())
             );
 

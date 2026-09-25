@@ -23,7 +23,7 @@ class ReservationController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $request->user();
-        $query = Reservation::with(['voyage.voyageur.user', 'client.user', 'colis']);
+        $query = Reservation::with(['voyage.voyageur.user', 'voyage.entreprise', 'voyage.agentGp.user', 'client.user', 'colis']);
 
         if ($user->hasRole('admin')) {
             // L'administrateur voit tout.
@@ -32,6 +32,18 @@ class ReservationController extends Controller
             $query->whereHas('voyage', function ($q) use ($user) {
                 $q->where('voyageur_id', $user->voyageur->id);
             });
+        } elseif ($user->isGerantEntreprise()) {
+            $entrepriseId = $user->getEntrepriseId();
+            $query->where('entreprise_id', $entrepriseId)
+                ->orWhereHas('voyage', function ($q) use ($entrepriseId) {
+                    $q->where('entreprise_id', $entrepriseId);
+                });
+        } elseif ($user->agentGp) {
+            $agentGpId = $user->agentGp->id;
+            $query->where('agent_gp_id', $agentGpId)
+                ->orWhereHas('voyage', function ($q) use ($agentGpId) {
+                    $q->where('agent_gp_id', $agentGpId);
+                });
         } elseif ($user->client) {
             // Mode Client : voir toutes ses réservations (y compris annulées).
             $query->where('client_id', $user->client->id);
@@ -58,7 +70,7 @@ class ReservationController extends Controller
             ], 403);
         }
 
-        $voyage = Voyage::findOrFail($request->voyage_id);
+        $voyage = Voyage::with(['voyageur.user', 'entreprise', 'agentGp.user'])->findOrFail($request->voyage_id);
 
         if ($voyage->statut !== 'publie') {
             return response()->json([
@@ -106,6 +118,8 @@ class ReservationController extends Controller
                 'numero' => $numero,
                 'voyage_id' => $voyage->id,
                 'client_id' => $user->client->id,
+                'entreprise_id' => $voyage->entreprise_id,
+                'agent_gp_id' => $voyage->agent_gp_id,
                 'montant_total' => $montantTotal,
                 'mode_paiement_souhaite' => $request->mode_paiement_souhaite,
                 'statut' => 'en_attente',
@@ -160,13 +174,24 @@ class ReservationController extends Controller
                 'mis_a_jour_par' => $user->id,
             ]);
 
-            // Notifier le Voyageur
-            NotificationService::send(
-                $voyage->voyageur->user_id,
-                'Nouvelle demande de réservation',
-                sprintf('Vous avez reçu une nouvelle demande de réservation (%s) pour votre voyage %s -> %s.', $res->numero, $voyage->ville_depart, $voyage->ville_destination),
-                'reservation'
-            );
+            // Determine recipient for notification
+            $recipientUserId = null;
+            if ($voyage->voyageur) {
+                $recipientUserId = $voyage->voyageur->user_id;
+            } elseif ($voyage->agentGp) {
+                $recipientUserId = $voyage->agentGp->user_id;
+            } elseif ($voyage->entreprise) {
+                $recipientUserId = $voyage->entreprise->gerant_user_id;
+            }
+
+            if ($recipientUserId) {
+                NotificationService::send(
+                    $recipientUserId,
+                    'Nouvelle demande de réservation',
+                    sprintf('Vous avez reçu une nouvelle demande de réservation (%s) pour votre voyage %s -> %s.', $res->numero, $voyage->ville_depart, $voyage->ville_destination),
+                    'reservation'
+                );
+            }
 
             return $res;
         });
@@ -188,7 +213,7 @@ class ReservationController extends Controller
         }
 
         return response()->json([
-            'data' => new ReservationResource($reservation->load(['voyage.voyageur.user', 'client.user', 'colis.suivis'])),
+            'data' => new ReservationResource($reservation->load(['voyage.voyageur.user', 'voyage.entreprise', 'voyage.agentGp.user', 'client.user', 'colis.suivis'])),
         ]);
     }
 
@@ -221,9 +246,14 @@ class ReservationController extends Controller
         $user = $request->user();
         $voyage = $reservation->voyage;
 
-        if (! $user->hasRole('admin') && ($user->voyageur?->id !== $voyage->voyageur_id)) {
+        $canAccept = $user->hasRole('admin') ||
+            ($user->voyageur && $user->voyageur->id === $voyage->voyageur_id) ||
+            ($user->isGerantEntreprise() && $user->getEntrepriseId() === $voyage->entreprise_id) ||
+            ($user->agentGp && $user->agentGp->id === $voyage->agent_gp_id);
+
+        if (! $canAccept) {
             return response()->json([
-                'message' => 'Seul le voyageur effectuant le voyage peut accepter cette réservation.',
+                'message' => 'Seul le voyageur ou l\'entreprise effectuant le voyage peut accepter cette réservation.',
             ], 403);
         }
 
@@ -264,7 +294,7 @@ class ReservationController extends Controller
                     'colis_id' => $reservation->colis->id,
                     'statut' => 'reservation_acceptee',
                     'date_changement' => now(),
-                    'commentaire' => 'Réservation acceptée par le voyageur.',
+                    'commentaire' => 'Réservation acceptée par le transporteur.',
                     'mis_a_jour_par' => $user->id,
                 ]);
             }
@@ -272,7 +302,7 @@ class ReservationController extends Controller
             NotificationService::send(
                 $reservation->client->user_id,
                 'Réservation acceptée',
-                sprintf('Votre réservation %s a été acceptée par le voyageur.', $reservation->numero),
+                sprintf('Votre réservation %s a été acceptée par le transporteur.', $reservation->numero),
                 'reservation'
             );
         });
@@ -288,9 +318,14 @@ class ReservationController extends Controller
         $user = $request->user();
         $voyage = $reservation->voyage;
 
-        if (! $user->hasRole('admin') && ($user->voyageur?->id !== $voyage->voyageur_id)) {
+        $canRefuse = $user->hasRole('admin') ||
+            ($user->voyageur && $user->voyageur->id === $voyage->voyageur_id) ||
+            ($user->isGerantEntreprise() && $user->getEntrepriseId() === $voyage->entreprise_id) ||
+            ($user->agentGp && $user->agentGp->id === $voyage->agent_gp_id);
+
+        if (! $canRefuse) {
             return response()->json([
-                'message' => 'Seul le voyageur effectuant le voyage peut refuser cette réservation.',
+                'message' => 'Seul le voyageur ou l\'entreprise effectuant le voyage peut refuser cette réservation.',
             ], 403);
         }
 
@@ -308,7 +343,7 @@ class ReservationController extends Controller
         NotificationService::send(
             $reservation->client->user_id,
             'Réservation refusée',
-            sprintf('Votre réservation %s a été refusée par le voyageur.', $reservation->numero),
+            sprintf('Votre réservation %s a été refusée par le transporteur.', $reservation->numero),
             'reservation'
         );
 
@@ -350,16 +385,27 @@ class ReservationController extends Controller
 
             $reservation->update(['statut' => 'annulee']);
 
-            $targetUserId = ($user->id === $reservation->client->user_id)
-                ? $reservation->voyage->voyageur->user_id
-                : $reservation->client->user_id;
+            $targetUserId = null;
+            if ($user->id === $reservation->client->user_id) {
+                if ($reservation->voyage->voyageur) {
+                    $targetUserId = $reservation->voyage->voyageur->user_id;
+                } elseif ($reservation->voyage->agentGp) {
+                    $targetUserId = $reservation->voyage->agentGp->user_id;
+                } elseif ($reservation->voyage->entreprise) {
+                    $targetUserId = $reservation->voyage->entreprise->gerant_user_id;
+                }
+            } else {
+                $targetUserId = $reservation->client->user_id;
+            }
 
-            NotificationService::send(
-                $targetUserId,
-                'Réservation annulée',
-                sprintf('La réservation %s a été annulée.', $reservation->numero),
-                'reservation'
-            );
+            if ($targetUserId) {
+                NotificationService::send(
+                    $targetUserId,
+                    'Réservation annulée',
+                    sprintf('La réservation %s a été annulée.', $reservation->numero),
+                    'reservation'
+                );
+            }
         });
 
         return response()->json([
@@ -401,7 +447,15 @@ class ReservationController extends Controller
             return true;
         }
 
-        if ($user->voyageur && $reservation->voyage->voyageur_id === $user->voyageur->id) {
+        if ($user->voyageur && $reservation->voyage && $reservation->voyage->voyageur_id === $user->voyageur->id) {
+            return true;
+        }
+
+        if ($user->isGerantEntreprise() && $reservation->voyage && $reservation->voyage->entreprise_id === $user->getEntrepriseId()) {
+            return true;
+        }
+
+        if ($user->agentGp && $reservation->voyage && $reservation->voyage->agent_gp_id === $user->agentGp->id) {
             return true;
         }
 

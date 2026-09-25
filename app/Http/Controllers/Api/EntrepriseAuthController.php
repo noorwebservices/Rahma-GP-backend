@@ -7,6 +7,7 @@ use App\Mail\EntrepriseAccountValidatedMail;
 use App\Models\Entreprise;
 use App\Models\User;
 use App\Services\ActiviteEntrepriseService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +51,7 @@ class EntrepriseAuthController extends Controller
                 'prenom' => $validated['prenom_gerant'],
                 'telephone' => $validated['telephone_gerant'],
                 'email' => $validated['email_gerant'] ?? null,
+                'adresse' => $request->input('adresse_gerant') ?? $validated['adresse'] ?? null,
                 'mot_de_passe' => $validated['mot_de_passe'],
                 'statut' => 'actif',
             ]);
@@ -83,6 +85,7 @@ class EntrepriseAuthController extends Controller
                 'pays' => $validated['pays'],
                 'ninea' => $validated['ninea'] ?? null,
                 'registre_commerce' => $validated['registre_commerce'] ?? null,
+                'logo' => $logoPath,
                 'ninea_doc' => $nineaDocPath,
                 'registre_commerce_doc' => $rcDocPath,
                 'moyen_paiement_prefere' => $validated['moyen_paiement_prefere'] ?? 'wave',
@@ -101,16 +104,17 @@ class EntrepriseAuthController extends Controller
             return ['user' => $user, 'entreprise' => $entreprise];
         });
 
-        // Envoi de l'e-mail de confirmation à l'entreprise
-        $this->sendVerificationEmail($data['entreprise'], $verificationToken);
-
-        $jwtToken = auth('api')->login($data['user']);
+        // Notification des administrateurs pour la nouvelle inscription d'Entreprise GP
+        NotificationService::notifyAdmins(
+            'Nouvelle inscription Entreprise GP',
+            "L'entreprise {$data['entreprise']->nom} (Gérant: {$data['user']->prenom} {$data['user']->nom}) s'est inscrite et attend une validation.",
+            'entreprise_inscription'
+        );
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Compte Entreprise GP créé avec succès ! Un e-mail de confirmation a été envoyé à '.$data['entreprise']->email.'.',
-            'access_token' => $jwtToken,
-            'token_type' => 'bearer',
+            'message' => 'Compte Entreprise GP créé avec succès ! Votre dossier a été transmis à l\'administration pour vérification. Veuillez consulter régulièrement votre boîte e-mail.',
+            'require_verification' => true,
             'entreprise' => $data['entreprise'],
             'user' => $data['user'],
         ], 201);

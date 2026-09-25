@@ -66,7 +66,7 @@ return [
     |
     */
 
-    'frontend_url' => env('APP_FRONTEND_URL', env('FRONTEND_URL', 'https://rahmadelivery.com')),
+    'frontend_url' => env('APP_FRONTEND_URL', env('FRONTEND_URL', 'http://localhost:5173')),
 
     /*
     |--------------------------------------------------------------------------
