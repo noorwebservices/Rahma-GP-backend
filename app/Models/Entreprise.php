@@ -55,6 +55,22 @@ class Entreprise extends Model
         );
     }
 
+    /** CNI Recto en URL absolue */
+    protected function cniRecto(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => Media::url($value),
+        );
+    }
+
+    /** CNI Verso en URL absolue */
+    protected function cniVerso(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => Media::url($value),
+        );
+    }
+
     public function gerant(): BelongsTo
     {
         return $this->belongsTo(User::class, 'gerant_user_id');

@@ -31,6 +31,9 @@ class StoreVoyageRequest extends FormRequest
             'objets_autorises.*' => ['string'],
             'objets_interdits' => ['nullable', 'array'],
             'objets_interdits.*' => ['string'],
+            'tarifs_speciaux' => ['nullable', 'array'],
+            'tarifs_speciaux.*.nom' => ['nullable', 'string'],
+            'tarifs_speciaux.*.prix' => ['nullable', 'numeric', 'min:0'],
             'statut' => ['nullable', 'string', 'in:brouillon,publie,complet,en_cours,termine,annule'],
         ];
     }

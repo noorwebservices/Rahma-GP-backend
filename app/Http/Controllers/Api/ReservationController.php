@@ -93,20 +93,36 @@ class ReservationController extends Controller
         $prixObjet = (float) ($voyage->prix_objet ?? 0);
 
         $colisType = (string) $request->input('colis.type', '');
-        $typeLower = mb_strtolower($colisType);
-        $isElectronic = str_contains($typeLower, 'électronique') ||
-                        str_contains($typeLower, 'electronique') ||
-                        str_contains($typeLower, 'téléphone') ||
-                        str_contains($typeLower, 'telephone') ||
-                        str_contains($typeLower, 'high-tech') ||
-                        str_contains($typeLower, 'hightech') ||
-                        str_contains($typeLower, 'ordinateur') ||
-                        str_contains($typeLower, 'tablette');
+        $typeLower = mb_strtolower(trim($colisType));
 
-        if ($isElectronic && $prixObjet > 0) {
-            $montantTotal = $prixObjet;
+        $tarifSpecialTrouve = null;
+        if (! empty($voyage->tarifs_speciaux) && is_array($voyage->tarifs_speciaux)) {
+            foreach ($voyage->tarifs_speciaux as $itemTarif) {
+                $itemNom = mb_strtolower(trim($itemTarif['nom'] ?? ''));
+                if ($itemNom !== '' && ($typeLower === $itemNom || str_contains($typeLower, $itemNom) || str_contains($itemNom, $typeLower))) {
+                    $tarifSpecialTrouve = (float) ($itemTarif['prix'] ?? 0);
+                    break;
+                }
+            }
+        }
+
+        if ($tarifSpecialTrouve !== null && $tarifSpecialTrouve > 0) {
+            $montantTotal = $tarifSpecialTrouve;
         } else {
-            $montantTotal = ceil($colisPoids) * $prixKg;
+            $isElectronic = str_contains($typeLower, 'électronique') ||
+                            str_contains($typeLower, 'electronique') ||
+                            str_contains($typeLower, 'téléphone') ||
+                            str_contains($typeLower, 'telephone') ||
+                            str_contains($typeLower, 'high-tech') ||
+                            str_contains($typeLower, 'hightech') ||
+                            str_contains($typeLower, 'ordinateur') ||
+                            str_contains($typeLower, 'tablette');
+
+            if ($isElectronic && $prixObjet > 0) {
+                $montantTotal = $prixObjet;
+            } else {
+                $montantTotal = ceil($colisPoids) * $prixKg;
+            }
         }
 
         $reservation = DB::transaction(function () use ($request, $user, $voyage, $colisPoids, $montantTotal) {

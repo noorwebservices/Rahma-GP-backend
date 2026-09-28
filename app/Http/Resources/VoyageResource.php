@@ -37,6 +37,7 @@ class VoyageResource extends JsonResource
                 'description' => $this->description,
                 'objets_autorises' => $this->objets_autorises ?? [],
                 'objets_interdits' => $this->objets_interdits ?? [],
+                'tarifs_speciaux' => $this->tarifs_speciaux ?? [],
                 'statut' => $this->statut,
                 'moyenne_notes' => round((float) ($evalueUserId ? (Evaluation::where('evalue_id', $evalueUserId)->avg('note') ?? 0) : 0), 2),
                 'total_evaluations' => $evalueUserId ? Evaluation::where('evalue_id', $evalueUserId)->count() : 0,

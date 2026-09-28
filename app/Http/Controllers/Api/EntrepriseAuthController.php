@@ -39,7 +39,8 @@ class EntrepriseAuthController extends Controller
             'pays' => 'required|string',
             'ninea' => 'nullable|string',
             'registre_commerce' => 'nullable|string',
-            'moyen_paiement_prefere' => 'nullable|string',
+            'type_piece' => 'nullable|in:cni,passport',
+            'numero_piece' => 'nullable|string',
             'coordonnees_paiement' => 'nullable|array',
         ]);
 
@@ -74,6 +75,16 @@ class EntrepriseAuthController extends Controller
                 $rcDocPath = $request->file('registre_commerce_doc')->store('entreprises/docs', 'public');
             }
 
+            $cniRectoPath = null;
+            if ($request->hasFile('cni_recto')) {
+                $cniRectoPath = $request->file('cni_recto')->store('entreprises/cni', 'public');
+            }
+
+            $cniVersoPath = null;
+            if ($request->hasFile('cni_verso')) {
+                $cniVersoPath = $request->file('cni_verso')->store('entreprises/cni', 'public');
+            }
+
             $entreprise = Entreprise::create([
                 'gerant_user_id' => $user->id,
                 'nom' => $validated['nom_entreprise'],
@@ -85,10 +96,13 @@ class EntrepriseAuthController extends Controller
                 'pays' => $validated['pays'],
                 'ninea' => $validated['ninea'] ?? null,
                 'registre_commerce' => $validated['registre_commerce'] ?? null,
+                'type_piece' => $validated['type_piece'] ?? 'cni',
+                'numero_piece' => $validated['numero_piece'] ?? null,
+                'cni_recto' => $cniRectoPath,
+                'cni_verso' => $cniVersoPath,
                 'logo' => $logoPath,
                 'ninea_doc' => $nineaDocPath,
                 'registre_commerce_doc' => $rcDocPath,
-                'moyen_paiement_prefere' => $validated['moyen_paiement_prefere'] ?? 'wave',
                 'coordonnees_paiement' => $validated['coordonnees_paiement'] ?? null,
                 'statut_verification' => 'en_attente',
                 'verification_token' => $verificationToken,
@@ -233,7 +247,8 @@ class EntrepriseAuthController extends Controller
             'pays' => 'sometimes|string',
             'ninea' => 'nullable|string',
             'registre_commerce' => 'nullable|string',
-            'moyen_paiement_prefere' => 'nullable|string',
+            'type_piece' => 'nullable|in:cni,passport',
+            'numero_piece' => 'nullable|string',
             'coordonnees_paiement' => 'nullable|array',
         ]);
 
@@ -247,6 +262,14 @@ class EntrepriseAuthController extends Controller
 
         if ($request->hasFile('registre_commerce_doc')) {
             $validated['registre_commerce_doc'] = $request->file('registre_commerce_doc')->store('entreprises/docs', 'public');
+        }
+
+        if ($request->hasFile('cni_recto')) {
+            $validated['cni_recto'] = $request->file('cni_recto')->store('entreprises/cni', 'public');
+        }
+
+        if ($request->hasFile('cni_verso')) {
+            $validated['cni_verso'] = $request->file('cni_verso')->store('entreprises/cni', 'public');
         }
 
         $entreprise->update($validated);

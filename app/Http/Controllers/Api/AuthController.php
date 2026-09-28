@@ -192,8 +192,31 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->getCredentials();
+        $token = null;
 
-        if (! $token = auth('api')->attempt($credentials)) {
+        // Si la tentative de connexion se fait par téléphone, essayer des variations de format de numéro (avec/sans indicatif, espaces, etc.)
+        if (isset($credentials['telephone']) && ! empty($credentials['telephone'])) {
+            $rawPhone = $credentials['telephone'];
+            $password = $credentials['password'] ?? $request->input('mot_de_passe');
+            $cleanDigits = preg_replace('/[^0-9]/', '', $rawPhone);
+            $lastDigits = strlen($cleanDigits) >= 7 ? substr($cleanDigits, -9) : $cleanDigits;
+
+            $userCandidate = User::where('telephone', $rawPhone)
+                ->orWhere('telephone', $cleanDigits)
+                ->orWhere('telephone', '+' . $cleanDigits)
+                ->orWhere('telephone', 'like', '%' . $lastDigits)
+                ->first();
+
+            if ($userCandidate && $password && \Illuminate\Support\Facades\Hash::check($password, $userCandidate->mot_de_passe)) {
+                $token = auth('api')->login($userCandidate);
+            }
+        }
+
+        if (! $token) {
+            $token = auth('api')->attempt($credentials);
+        }
+
+        if (! $token) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Identifiants incorrects (email/téléphone ou mot de passe invalide).',

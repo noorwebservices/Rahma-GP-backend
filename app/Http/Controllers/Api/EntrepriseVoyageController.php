@@ -43,6 +43,7 @@ class EntrepriseVoyageController extends Controller
             'description' => 'nullable|string',
             'objets_autorises' => 'nullable|array',
             'objets_interdits' => 'nullable|array',
+            'tarifs_speciaux' => 'nullable|array',
             'agent_gp_id' => 'nullable|uuid|exists:agent_gps,id',
         ]);
 
@@ -69,6 +70,7 @@ class EntrepriseVoyageController extends Controller
                 'description' => $validated['description'] ?? null,
                 'objets_autorises' => $validated['objets_autorises'] ?? null,
                 'objets_interdits' => $validated['objets_interdits'] ?? null,
+                'tarifs_speciaux' => $validated['tarifs_speciaux'] ?? null,
                 'statut' => 'publie',
             ]);
 

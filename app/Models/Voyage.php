@@ -23,6 +23,7 @@ class Voyage extends Model
             'date_arrivee' => 'datetime',
             'objets_autorises' => 'array',
             'objets_interdits' => 'array',
+            'tarifs_speciaux' => 'array',
         ];
     }
 
