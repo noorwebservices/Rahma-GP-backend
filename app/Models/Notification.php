@@ -22,7 +22,8 @@ class Notification extends Model
      */
     public function prunable(): Builder
     {
-        return static::where('created_at', '<=', now()->subDays(3));
+        return static::where('created_at', '<=', now()->subDays(3))
+            ->orWhere('date_envoi', '<=', now()->subDays(3));
     }
 
     protected function casts(): array

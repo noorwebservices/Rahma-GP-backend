@@ -45,6 +45,7 @@ class EntrepriseVoyageController extends Controller
             'objets_interdits' => 'nullable|array',
             'tarifs_speciaux' => 'nullable|array',
             'agent_gp_id' => 'nullable|uuid|exists:agent_gps,id',
+            'statut' => 'nullable|string|in:brouillon,publie,annule,termine',
         ]);
 
         $voyage = DB::transaction(function () use ($validated, $entrepriseId, $user) {
@@ -65,13 +66,13 @@ class EntrepriseVoyageController extends Controller
                 'capacite_totale' => $validated['capacite_totale'],
                 'capacite_dispo' => $validated['capacite_totale'],
                 'prix_kg' => $validated['prix_kg'] ?? null,
-                'prix_objet' => $validated['prix_objet'] ?? null,
+                'prix_objet' => 0,
                 'devise' => $validated['devise'] ?? 'XOF',
                 'description' => $validated['description'] ?? null,
                 'objets_autorises' => $validated['objets_autorises'] ?? null,
                 'objets_interdits' => $validated['objets_interdits'] ?? null,
                 'tarifs_speciaux' => $validated['tarifs_speciaux'] ?? null,
-                'statut' => 'publie',
+                'statut' => $validated['statut'] ?? 'brouillon',
             ]);
 
             $descr = "Voyage {$voyage->ville_depart} -> {$voyage->ville_destination} créé.";

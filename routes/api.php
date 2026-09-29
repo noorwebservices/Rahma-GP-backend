@@ -197,6 +197,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('demandes-partenariat', [AdminController::class, 'demandesPartenariat']);
         Route::patch('demandes-partenariat/{demande}/statut', [AdminController::class, 'updateDemandePartenariatStatut']);
         Route::get('voyageurs-stats', [AdminController::class, 'voyageursStats']);
+        Route::get('entreprises-voyages-stats', [AdminController::class, 'entreprisesVoyagesStats']);
 
         // Supervision / Monitoring analytics
         Route::prefix('monitoring')->group(function () {

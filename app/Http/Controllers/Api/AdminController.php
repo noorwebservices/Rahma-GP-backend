@@ -41,6 +41,7 @@ class AdminController extends Controller
         })->count();
         $totalVoyageurs = User::role('voyageur')->count();
         $totalEntreprises = Entreprise::count();
+        $totalAgents = User::role('agent_gp')->count();
         $totalAdmins = User::role('admin')->count();
 
         $usersActifs = User::whereDoesntHave('roles', function ($q) {
@@ -79,6 +80,7 @@ class AdminController extends Controller
                     'clients' => $totalClients,
                     'voyageurs' => $totalVoyageurs,
                     'entreprises' => $totalEntreprises,
+                    'agents' => $totalAgents,
                     'admins' => $totalAdmins,
                     'actifs' => $usersActifs,
                     'suspendus' => $usersSuspendus,
@@ -119,7 +121,7 @@ class AdminController extends Controller
      */
     public function users(Request $request): JsonResponse
     {
-        $query = User::with(['client', 'voyageur', 'entrepriseGeree', 'roles']);
+        $query = User::with(['client', 'voyageur', 'entrepriseGeree', 'agentGp.entreprise', 'roles']);
 
         // Recherche par mot-clé
         if ($search = $request->input('search')) {
@@ -147,8 +149,10 @@ class AdminController extends Controller
                 });
             } elseif ($role === 'client') {
                 $query->role('client')->whereDoesntHave('roles', function ($q) {
-                    $q->whereIn('name', ['admin', 'voyageur', 'gerant_entreprise']);
+                    $q->whereIn('name', ['admin', 'voyageur', 'gerant_entreprise', 'agent_gp']);
                 });
+            } elseif ($role === 'agent') {
+                $query->role('agent_gp');
             } else {
                 $query->role($role);
             }
@@ -185,6 +189,9 @@ class AdminController extends Controller
             'entrepriseGeree.agents.user',
             'entrepriseGeree.voyages',
             'agentGp.entreprise',
+            'agentGp.voyages.reservations.colis',
+            'agentGp.voyages.reservations.messages',
+            'agentGp.voyages.reservations.client.user',
             'roles',
             'notifications',
             'signalementsFaits.signale',
@@ -599,6 +606,118 @@ class AdminController extends Controller
     }
 
     /**
+     * Obtenir les statistiques détaillées des voyages par entreprise GP,
+     * incluant les voyages d'entreprise et les agents affectés.
+     */
+    public function entreprisesVoyagesStats(Request $request): JsonResponse
+    {
+        $query = Entreprise::with([
+            'gerant:id,nom,prenom,email,telephone,avatar,statut,created_at',
+            'agents.user:id,nom,prenom,email,telephone,avatar',
+            'voyages' => function ($q) {
+                $q->with([
+                    'agentGp.user:id,nom,prenom,email,telephone',
+                    'reservations' => function ($rq) {
+                        $rq->with(['colis', 'client.user'])->withCount('messages');
+                    }
+                ]);
+            },
+        ]);
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('telephone', 'like', "%{$search}%")
+                    ->orWhereHas('gerant', function ($gq) use ($search) {
+                        $gq->where('nom', 'like', "%{$search}%")
+                            ->orWhere('prenom', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $perPage = (int) $request->input('per_page', 15);
+        $entreprises = $query->paginate($perPage);
+
+        $entreprises->getCollection()->transform(function ($entreprise) {
+            $eArray = $entreprise->toArray();
+
+            $totalVoyages = count($entreprise->voyages);
+            $totalReservations = 0;
+            $totalMessages = 0;
+
+            $voyagesFormatted = [];
+            foreach ($entreprise->voyages as $voyage) {
+                $resCount = count($voyage->reservations);
+                $totalReservations += $resCount;
+
+                $poidsReserveVoyage = 0;
+                $reservationsDetail = [];
+                foreach ($voyage->reservations as $res) {
+                    $msgCount = $res->messages_count ?? 0;
+                    $totalMessages += $msgCount;
+                    $clientUser = $res->client ? $res->client->user : null;
+                    $poidsColis = (float) ($res->colis->poids ?? $res->poids_kg ?? $res->poids ?? 0);
+
+                    if ($res->statut !== 'annulee') {
+                        $poidsReserveVoyage += $poidsColis;
+                    }
+
+                    $reservationsDetail[] = [
+                        'id' => $res->id,
+                        'code_suivi' => $res->code_suivi ?? $res->numero ?? substr($res->id, 0, 8),
+                        'client_nom' => $clientUser ? ($clientUser->prenom.' '.$clientUser->nom) : 'Client',
+                        'statut' => $res->statut,
+                        'poids_kg' => $poidsColis,
+                        'messages_count' => $msgCount,
+                    ];
+                }
+
+                $capaciteTotale = (float) ($voyage->capacite_totale ?? 0);
+                $kilosDispo = max(0, $capaciteTotale - $poidsReserveVoyage);
+
+                $agentUser = $voyage->agentGp ? $voyage->agentGp->user : null;
+                $agentNom = $agentUser ? ($agentUser->prenom . ' ' . $agentUser->nom) : 'Gérant / Non affecté';
+
+                $voyagesFormatted[] = [
+                    'id' => $voyage->id,
+                    'ville_depart' => $voyage->ville_depart ?? 'Départ',
+                    'ville_destination' => $voyage->ville_destination ?? $voyage->ville_arrivee ?? 'Destination',
+                    'date_depart' => $voyage->date_depart,
+                    'date_arrivee' => $voyage->date_arrivee,
+                    'statut' => $voyage->statut,
+                    'agent_nom' => $agentNom,
+                    'capacite_totale' => $capaciteTotale,
+                    'poids_reserve' => $poidsReserveVoyage,
+                    'kilos_disponibles' => $kilosDispo,
+                    'prix_kg' => $voyage->prix_kg,
+                    'reservations_count' => $resCount,
+                    'reservations' => $reservationsDetail,
+                ];
+            }
+
+            $gerantUser = $entreprise->gerant;
+            $dataSize = $gerantUser ? $this->calculateUserDataSize($gerantUser) : ['octets' => 0, 'ko' => 0, 'mo' => 0, 'formatted' => '0 Ko'];
+
+            $eArray['statistiques'] = [
+                'total_voyages' => $totalVoyages,
+                'total_reservations' => $totalReservations,
+                'total_messages' => $totalMessages,
+                'capacite_donnees_bd' => $dataSize,
+            ];
+            $eArray['voyages_details'] = $voyagesFormatted;
+
+            return $eArray;
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $entreprises,
+        ]);
+    }
+
+    /**
      * Calculer l'empreinte de stockage (capacité de données) dans la BD pour un utilisateur donné.
      */
     protected function calculateUserDataSize(User $user): array
@@ -608,19 +727,62 @@ class AdminController extends Controller
         // Estimation de taille des lignes d'enregistrements en octets
         $userBaseBytes = 1200; // Infos profil user, auth tokens
 
+        // Récupérer les IDs associés en amont pour éviter les subqueries SQL problématiques avec UUID
+        $voyageurId = DB::table('voyageurs')->where('user_id', $userId)->value('id');
+        $agentGpId = DB::table('agent_gps')->where('user_id', $userId)->value('id');
+        $entrepriseId = DB::table('entreprises')->where('gerant_user_id', $userId)->value('id');
+        $clientId = DB::table('clients')->where('user_id', $userId)->value('id');
+
         // Voyages
-        $voyagesCount = Voyage::where('voyageur_id', function ($q) use ($userId) {
-            $q->select('id')->from('voyageurs')->where('user_id', $userId)->limit(1);
-        })->count();
+        $voyagesQuery = Voyage::query();
+        $voyagesQuery->where(function ($q) use ($voyageurId, $agentGpId, $entrepriseId) {
+            $hasCondition = false;
+            if ($voyageurId) {
+                $q->where('voyageur_id', $voyageurId);
+                $hasCondition = true;
+            }
+            if ($agentGpId) {
+                if ($hasCondition) {
+                    $q->orWhere('agent_gp_id', $agentGpId);
+                } else {
+                    $q->where('agent_gp_id', $agentGpId);
+                    $hasCondition = true;
+                }
+            }
+            if ($entrepriseId) {
+                if ($hasCondition) {
+                    $q->orWhere('entreprise_id', $entrepriseId);
+                } else {
+                    $q->where('entreprise_id', $entrepriseId);
+                    $hasCondition = true;
+                }
+            }
+            if (!$hasCondition) {
+                $q->whereRaw('1 = 0');
+            }
+        });
+        $userVoyageIds = $voyagesQuery->pluck('id')->toArray();
+        $voyagesCount = count($userVoyageIds);
         $voyagesBytes = $voyagesCount * 800;
 
-        // Réservations faites ou reçues
-        $reservationsCount = Reservation::where('client_id', function ($q) use ($userId) {
-            $q->select('id')->from('clients')->where('user_id', $userId)->limit(1);
-        })->orWhereIn('voyage_id', function ($q) use ($userId) {
-            $q->select('id')->from('voyages')->where('voyageur_id', function ($vq) use ($userId) {
-                $vq->select('id')->from('voyageurs')->where('user_id', $userId)->limit(1);
-            });
+        // Réservations faites (client) ou reçues (sur ses voyages)
+        $reservationsCount = Reservation::where(function ($q) use ($clientId, $userVoyageIds) {
+            $hasCondition = false;
+            if ($clientId) {
+                $q->where('client_id', $clientId);
+                $hasCondition = true;
+            }
+            if (!empty($userVoyageIds)) {
+                if ($hasCondition) {
+                    $q->orWhereIn('voyage_id', $userVoyageIds);
+                } else {
+                    $q->whereIn('voyage_id', $userVoyageIds);
+                    $hasCondition = true;
+                }
+            }
+            if (!$hasCondition) {
+                $q->whereRaw('1 = 0');
+            }
         })->count();
         $reservationsBytes = $reservationsCount * 900;
 
@@ -652,3 +814,4 @@ class AdminController extends Controller
         ];
     }
 }
+
