@@ -55,28 +55,40 @@ class EntrepriseDashboardController extends Controller
         $agentsIndisponibles = (clone $agentsQuery)->where('statut', 'indisponible')->count();
 
         // 4. Statistiques Réservations
-        $reservationsQuery = Reservation::where('entreprise_id', $entrepriseId);
+        $reservationsQuery = Reservation::where(function ($q) use ($entrepriseId) {
+            $q->where('entreprise_id', $entrepriseId)
+              ->orWhereHas('voyage', fn($vq) => $vq->where('entreprise_id', $entrepriseId));
+        });
+
         $totalReservations = (clone $reservationsQuery)->count();
         $reservationsEnAttente = (clone $reservationsQuery)->where('statut', 'en_attente')->count();
-        $reservationsConfirmees = (clone $reservationsQuery)->where('statut', 'acceptee')->count();
-        $reservationsAnnulees = (clone $reservationsQuery)->where('statut', 'annulee')->count();
+        $reservationsConfirmees = (clone $reservationsQuery)->whereIn('statut', ['acceptee', 'colis_depose', 'en_transit', 'livre', 'livree'])->count();
+        $reservationsAnnulees = (clone $reservationsQuery)->whereIn('statut', ['refusee', 'annulee', 'annule'])->count();
 
         // 5. Statistiques Financières Résumées
         $paiementsQuery = Paiement::whereHas('reservation', function ($q) use ($entrepriseId) {
-            $q->where('entreprise_id', $entrepriseId);
+            $q->where('entreprise_id', $entrepriseId)
+              ->orWhereHas('voyage', fn($vq) => $vq->where('entreprise_id', $entrepriseId));
         });
 
-        $revenusJour = (clone $paiementsQuery)->where('statut', 'succes')
+        $revenusJour = (clone $paiementsQuery)->whereIn('statut', ['reussi', 'succes', 'paye'])
             ->whereDate('date_paiement', now()->today())
             ->sum('montant');
 
-        $revenusMois = (clone $paiementsQuery)->where('statut', 'succes')
+        $revenusMois = (clone $paiementsQuery)->whereIn('statut', ['reussi', 'succes', 'paye'])
             ->whereMonth('date_paiement', now()->month)
             ->whereYear('date_paiement', now()->year)
             ->sum('montant');
 
-        $totalEncaisse = (clone $paiementsQuery)->where('statut', 'succes')->sum('montant');
-        $paiementsEnAttente = (clone $paiementsQuery)->where('statut', 'en_attente')->sum('montant');
+        $totalEncaisse = (clone $paiementsQuery)->whereIn('statut', ['reussi', 'succes', 'paye'])->sum('montant');
+        $paiementsEnAttente = (clone $paiementsQuery)->whereIn('statut', ['en_attente', 'attente'])->sum('montant');
+
+        // Fallback financier si les objets Paiement ne sont pas explicites
+        $acceptedReservationsSum = (float) (clone $reservationsQuery)->whereIn('statut', ['acceptee', 'colis_depose', 'en_transit', 'livre', 'livree'])->sum('montant_total');
+        if ((float) $totalEncaisse === 0.0 && $acceptedReservationsSum > 0) {
+            $totalEncaisse = $acceptedReservationsSum;
+            $revenusMois = $acceptedReservationsSum;
+        }
 
         return response()->json([
             'status' => 'success',
@@ -131,32 +143,136 @@ class EntrepriseDashboardController extends Controller
 
         $entrepriseId = $user->getEntrepriseId();
 
-        $basePaiements = Paiement::whereHas('reservation', function ($q) use ($entrepriseId) {
-            $q->where('entreprise_id', $entrepriseId);
-        })->where('statut', 'succes');
+        $periode = $request->query('periode', 'mois');
+        $dateDebut = $request->query('date_debut');
+        $dateFin = $request->query('date_fin');
 
-        // Revenus du jour, semaine, mois
-        $revenusJour = (clone $basePaiements)->whereDate('date_paiement', now()->today())->sum('montant');
-        $revenusSemaine = (clone $basePaiements)->whereBetween('date_paiement', [now()->startOfWeek(), now()->endOfWeek()])->sum('montant');
-        $revenusMois = (clone $basePaiements)->whereMonth('date_paiement', now()->month)->sum('montant');
+        $acceptedResQuery = Reservation::where(function ($q) use ($entrepriseId) {
+            $q->where('entreprise_id', $entrepriseId)
+              ->orWhereHas('voyage', fn($vq) => $vq->where('entreprise_id', $entrepriseId));
+        })->whereIn('statut', ['acceptee', 'colis_depose', 'en_transit', 'livre', 'livree']);
 
-        // Revenus par destination
-        $revenusParDestination = DB::table('paiements')
-            ->join('reservations', 'paiements.reservation_id', '=', 'reservations.id')
-            ->join('voyages', 'reservations.voyage_id', '=', 'voyages.id')
-            ->where('reservations.entreprise_id', $entrepriseId)
-            ->where('paiements.statut', 'succes')
-            ->select('voyages.ville_destination', DB::raw('SUM(paiements.montant) as total_revenus'), DB::raw('COUNT(reservations.id) as nombre_reservations'))
-            ->groupBy('voyages.ville_destination')
-            ->get();
+        // Application du filtre temporel
+        if ($periode === 'aujourdhui') {
+            $acceptedResQuery->whereDate('created_at', now()->today());
+        } elseif ($periode === 'hier') {
+            $acceptedResQuery->whereDate('created_at', now()->yesterday());
+        } elseif ($periode === 'semaine') {
+            $acceptedResQuery->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+        } elseif ($periode === 'mois') {
+            $acceptedResQuery->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+        } elseif ($periode === 'annee') {
+            $acceptedResQuery->whereYear('created_at', now()->year);
+        } elseif ($periode === 'personnalise' && $dateDebut && $dateFin) {
+            $acceptedResQuery->whereBetween('created_at', [$dateDebut.' 00:00:00', $dateFin.' 23:59:59']);
+        }
+
+        $totalReservations = (clone $acceptedResQuery)->count();
+        $totalVoyages = Voyage::where('entreprise_id', $entrepriseId)->count();
+
+        $paiementsSum = (float) Paiement::whereHas('reservation', function ($q) use ($entrepriseId) {
+            $q->where('entreprise_id', $entrepriseId)
+              ->orWhereHas('voyage', fn($vq) => $vq->where('entreprise_id', $entrepriseId));
+        })->whereIn('statut', ['reussi', 'succes', 'paye'])->sum('montant');
+
+        $resSum = (float) (clone $acceptedResQuery)->sum('montant_total');
+
+        $totalChiffreAffaires = $resSum > 0 ? $resSum : $paiementsSum;
+        $panierMoyen = $totalReservations > 0 ? (float) ($totalChiffreAffaires / $totalReservations) : 0.0;
+
+        // Breakdown par Agent - Trié par chiffre d'affaires Décroissant
+        $agents = AgentGp::with('user')->where('entreprise_id', $entrepriseId)->get();
+        $parAgent = $agents->map(function ($agent) use ($periode, $dateDebut, $dateFin) {
+            $vQuery = Voyage::where('agent_gp_id', $agent->id);
+            $resQuery = Reservation::whereHas('voyage', fn($q) => $q->where('agent_gp_id', $agent->id))
+                ->whereIn('statut', ['acceptee', 'colis_depose', 'en_transit', 'livre', 'livree']);
+
+            if ($periode === 'aujourdhui') {
+                $resQuery->whereDate('created_at', now()->today());
+            } elseif ($periode === 'hier') {
+                $resQuery->whereDate('created_at', now()->yesterday());
+            } elseif ($periode === 'semaine') {
+                $resQuery->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+            } elseif ($periode === 'mois') {
+                $resQuery->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+            } elseif ($periode === 'annee') {
+                $resQuery->whereYear('created_at', now()->year);
+            } elseif ($periode === 'personnalise' && $dateDebut && $dateFin) {
+                $resQuery->whereBetween('created_at', [$dateDebut.' 00:00:00', $dateFin.' 23:59:59']);
+            }
+
+            $vCount = $vQuery->count();
+            $resCount = $resQuery->count();
+            $ca = (float) $resQuery->sum('montant_total');
+
+            return [
+                'id' => $agent->id,
+                'nom' => $agent->user?->nom ?? 'Agent',
+                'prenom' => $agent->user?->prenom ?? 'GP',
+                'nombre_voyages' => $vCount,
+                'nombre_reservations' => $resCount,
+                'chiffre_affaires' => $ca,
+                'commission' => round($ca * 0.10, 2),
+            ];
+        })->sortByDesc('chiffre_affaires')->values();
+
+        // Breakdown par Trajet
+        $voyages = Voyage::where('entreprise_id', $entrepriseId)->get();
+        $trajetsMap = [];
+        foreach ($voyages as $v) {
+            $trajetKey = $v->ville_depart.' ➔ '.$v->ville_destination;
+            $rQuery = Reservation::where('voyage_id', $v->id)->whereIn('statut', ['acceptee', 'colis_depose', 'en_transit', 'livre', 'livree']);
+            if ($periode === 'aujourdhui') {
+                $rQuery->whereDate('created_at', now()->today());
+            } elseif ($periode === 'hier') {
+                $rQuery->whereDate('created_at', now()->yesterday());
+            } elseif ($periode === 'semaine') {
+                $rQuery->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+            } elseif ($periode === 'mois') {
+                $rQuery->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+            } elseif ($periode === 'annee') {
+                $rQuery->whereYear('created_at', now()->year);
+            } elseif ($periode === 'personnalise' && $dateDebut && $dateFin) {
+                $rQuery->whereBetween('created_at', [$dateDebut.' 00:00:00', $dateFin.' 23:59:59']);
+            }
+
+            $m = (float) $rQuery->sum('montant_total');
+            if (! isset($trajetsMap[$trajetKey])) {
+                $trajetsMap[$trajetKey] = 0.0;
+            }
+            $trajetsMap[$trajetKey] += $m;
+        }
+
+        $parTrajet = [];
+        foreach ($trajetsMap as $trajet => $montant) {
+            $pourcentage = $totalChiffreAffaires > 0 ? round(($montant / $totalChiffreAffaires) * 100, 1) : 0;
+            $parTrajet[] = [
+                'trajet' => $trajet,
+                'montant' => $montant,
+                'pourcentage' => $pourcentage,
+            ];
+        }
 
         return response()->json([
             'status' => 'success',
+            'data' => [
+                'total_chiffre_affaires' => (float) $totalChiffreAffaires,
+                'total_reservations' => $totalReservations,
+                'total_voyages' => $totalVoyages,
+                'panier_moyen' => (float) $panierMoyen,
+                'par_agent' => $parAgent,
+                'par_trajet' => $parTrajet,
+            ],
             'revenus' => [
-                'jour' => (float) $revenusJour,
-                'semaine' => (float) $revenusSemaine,
-                'mois' => (float) $revenusMois,
-                'par_destination' => $revenusParDestination,
+                'total_chiffre_affaires' => (float) $totalChiffreAffaires,
+                'total_reservations' => $totalReservations,
+                'total_voyages' => $totalVoyages,
+                'panier_moyen' => (float) $panierMoyen,
+                'par_agent' => $parAgent,
+                'par_trajet' => $parTrajet,
+                'jour' => (float) $totalChiffreAffaires,
+                'semaine' => (float) $totalChiffreAffaires,
+                'mois' => (float) $totalChiffreAffaires,
             ],
         ]);
     }

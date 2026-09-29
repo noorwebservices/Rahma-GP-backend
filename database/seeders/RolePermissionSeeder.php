@@ -179,7 +179,7 @@ class RolePermissionSeeder extends Seeder
                 'colis.voir', 'colis.modifier_statut', 'suivis.creer', 'suivis.voir',
                 'adresse_depots.creer', 'adresse_depots.voir', 'adresse_depots.modifier', 'adresse_depots.supprimer',
                 'adresse_recuperations.creer', 'adresse_recuperations.voir', 'adresse_recuperations.modifier', 'adresse_recuperations.supprimer',
-                'messages.envoyer', 'messages.voir', 'notifications.voir', 'notifications.marquer_lue',
+                'messages.envoyer', 'messages.voir', 'evaluations.voir', 'notifications.voir', 'notifications.marquer_lue',
             ];
 
             $agentGp = Role::firstOrCreate([

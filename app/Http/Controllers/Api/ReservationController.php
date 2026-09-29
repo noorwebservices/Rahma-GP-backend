@@ -229,7 +229,7 @@ class ReservationController extends Controller
         }
 
         return response()->json([
-            'data' => new ReservationResource($reservation->load(['voyage.voyageur.user', 'voyage.entreprise', 'voyage.agentGp.user', 'client.user', 'colis.suivis'])),
+            'data' => new ReservationResource($reservation->load(['voyage.voyageur.user', 'voyage.entreprise', 'voyage.agentGp.user', 'client.user', 'colis.suivis', 'paiement'])),
         ]);
     }
 

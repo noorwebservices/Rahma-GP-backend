@@ -54,32 +54,44 @@ class PaiementController extends Controller
             );
 
             if ($statut === 'reussi') {
-                $voyageur = $reservation->voyage->voyageur;
+                $voyage = $reservation->voyage;
+                $voyageur = $voyage?->voyageur;
+                $voyageurUserId = $voyageur?->user_id 
+                    ?? $voyage?->agentGp?->user_id 
+                    ?? $voyage?->entreprise?->gerant_user_id 
+                    ?? $reservation->entreprise?->gerant_user_id 
+                    ?? $reservation->agentGp?->user_id;
 
-                // Crédit automatique des revenus du voyageur
-                Revenus_voyageur::updateOrCreate(
-                    ['reservation_id' => $reservation->id],
-                    [
-                        'voyageur_id' => $voyageur->id,
-                        'montant' => $montant,
-                        'statut' => 'disponible',
-                    ]
-                );
+                // Crédit automatique des revenus du voyageur si voyageur indépendant
+                if ($voyageur) {
+                    Revenus_voyageur::updateOrCreate(
+                        ['reservation_id' => $reservation->id],
+                        [
+                            'voyageur_id' => $voyageur->id,
+                            'montant' => $montant,
+                            'statut' => 'disponible',
+                        ]
+                    );
+                }
 
-                // Notifications au Voyageur et au Client
-                NotificationService::send(
-                    $voyageur->user_id,
-                    'Paiement confirmé',
-                    sprintf('Un paiement de %.2f %s pour la réservation %s a été validé.', $montant, $reservation->voyage->devise ?? 'EUR', $reservation->numero),
-                    'paiement'
-                );
+                // Notifications au Transporteur (Voyageur, Agent GP ou Gérant) et au Client
+                if ($voyageurUserId) {
+                    NotificationService::send(
+                        $voyageurUserId,
+                        'Paiement confirmé',
+                        sprintf('Un paiement de %.2f %s pour la réservation %s a été validé.', $montant, $reservation->voyage?->devise ?? 'EUR', $reservation->numero),
+                        'paiement'
+                    );
+                }
 
-                NotificationService::send(
-                    $reservation->client->user_id,
-                    'Paiement reçu',
-                    sprintf('Votre paiement de %.2f %s pour la réservation %s a été confirmé avec succès.', $montant, $reservation->voyage->devise ?? 'EUR', $reservation->numero),
-                    'paiement'
-                );
+                if ($reservation->client && $reservation->client->user_id) {
+                    NotificationService::send(
+                        $reservation->client->user_id,
+                        'Paiement reçu',
+                        sprintf('Votre paiement de %.2f %s pour la réservation %s a été confirmé avec succès.', $montant, $reservation->voyage?->devise ?? 'EUR', $reservation->numero),
+                        'paiement'
+                    );
+                }
             }
 
             return $p;
@@ -101,6 +113,22 @@ class PaiementController extends Controller
         } elseif ($user->voyageur && ! $user->voyageur->mode_client) {
             $query->whereHas('reservation.voyage', function ($q) use ($user) {
                 $q->where('voyageur_id', $user->voyageur->id);
+            });
+        } elseif ($user->agentGp) {
+            $agentGp = $user->agentGp;
+            $query->whereHas('reservation', function ($q) use ($agentGp) {
+                $q->where('agent_gp_id', $agentGp->id)
+                  ->orWhereHas('voyage', function ($vq) use ($agentGp) {
+                      $vq->where('agent_gp_id', $agentGp->id);
+                  });
+            });
+        } elseif ($user->entreprise) {
+            $entreprise = $user->entreprise;
+            $query->whereHas('reservation', function ($q) use ($entreprise) {
+                $q->where('entreprise_id', $entreprise->id)
+                  ->orWhereHas('voyage', function ($vq) use ($entreprise) {
+                      $vq->where('entreprise_id', $entreprise->id);
+                  });
             });
         } elseif ($user->client) {
             $query->whereHas('reservation', function ($q) use ($user) {
@@ -136,11 +164,19 @@ class PaiementController extends Controller
             return true;
         }
 
-        if ($user->client && $paiement->reservation->client_id === $user->client->id) {
+        if ($user->client && $paiement->reservation?->client_id === $user->client->id) {
             return true;
         }
 
-        if ($user->voyageur && $paiement->reservation->voyage->voyageur_id === $user->voyageur->id) {
+        if ($user->voyageur && $paiement->reservation?->voyage?->voyageur_id === $user->voyageur->id) {
+            return true;
+        }
+
+        if ($user->agentGp && ($paiement->reservation?->agent_gp_id === $user->agentGp->id || $paiement->reservation?->voyage?->agent_gp_id === $user->agentGp->id)) {
+            return true;
+        }
+
+        if ($user->entreprise && ($paiement->reservation?->entreprise_id === $user->entreprise->id || $paiement->reservation?->voyage?->entreprise_id === $user->entreprise->id)) {
             return true;
         }
 

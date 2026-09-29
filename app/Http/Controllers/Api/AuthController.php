@@ -337,7 +337,7 @@ class AuthController extends Controller
      */
     protected function formatUserResponse(User $user): array
     {
-        $user->loadMissing(['client', 'voyageur', 'entrepriseGeree', 'roles']);
+        $user->loadMissing(['client', 'voyageur', 'entrepriseGeree', 'agentGp.entreprise', 'roles']);
 
         $roles = $user->getRoleNames();
         $isAdmin = $roles->contains('admin');
@@ -348,6 +348,8 @@ class AuthController extends Controller
         $modeActuel = 'client';
         if ($isAdmin) {
             $modeActuel = 'admin';
+        } elseif ($roles->contains('agent_gp') || $user->agentGp) {
+            $modeActuel = 'agent';
         } elseif ($user->isGerantEntreprise() && $isEntrepriseVerifiee) {
             $modeActuel = 'entreprise';
         } elseif ($isVoyageurVerifie) {
@@ -368,6 +370,12 @@ class AuthController extends Controller
             'client' => $user->client,
             'voyageur' => $user->voyageur,
             'entreprise' => $user->entrepriseGeree,
+            'agent_gp' => $user->agentGp ? [
+                'id' => $user->agentGp->id,
+                'matricule' => $user->agentGp->matricule,
+                'statut' => $user->agentGp->statut,
+                'entreprise' => $user->agentGp->entreprise
+            ] : null,
             'is_voyageur_verifie' => $isVoyageurVerifie,
             'is_entreprise_verifiee' => $isEntrepriseVerifiee,
             'mode_actuel' => $modeActuel,

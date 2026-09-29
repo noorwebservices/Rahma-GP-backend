@@ -145,9 +145,16 @@ class VoyageController extends Controller
             ], 403);
         }
 
-        if ($entrepriseId && ! $voyageur) {
+        if ($entrepriseId) {
             $validated['entreprise_id'] = $entrepriseId;
-            $validated['voyageur_id'] = null;
+            if ($user?->agentGp) {
+                $validated['agent_gp_id'] = $user->agentGp->id;
+            }
+            if (! $voyageur) {
+                $validated['voyageur_id'] = null;
+            } else {
+                $validated['voyageur_id'] = $voyageur->id;
+            }
         } else {
             $validated['voyageur_id'] = $voyageur ? $voyageur->id : $request->input('voyageur_id');
         }
@@ -155,7 +162,7 @@ class VoyageController extends Controller
         $validated['statut'] = $validated['statut'] ?? 'brouillon';
 
         $voyage = Voyage::create($validated);
-        $voyage->load(['adresseDepot', 'adresseRecuperation', 'voyageur.user', 'entreprise', 'agentGp.user']);
+        $voyage->load(['adresseDepot', 'adresseRecuperation', 'voyageur.user.entrepriseGeree', 'entreprise', 'agentGp.user', 'agentGp.entreprise']);
 
         return response()->json([
             'status' => 'success',
@@ -370,7 +377,7 @@ class VoyageController extends Controller
     {
         Voyage::closePastVoyages();
 
-        $query = Voyage::with(['adresseDepot', 'adresseRecuperation', 'voyageur.user'])
+        $query = Voyage::with(['adresseDepot', 'adresseRecuperation', 'voyageur.user', 'entreprise', 'agentGp.user', 'agentGp.entreprise'])
             ->whereIn('statut', ['publie', 'complet']);
 
         if ($request->filled('statut')) {
@@ -413,7 +420,7 @@ class VoyageController extends Controller
     {
         Voyage::closePastVoyages();
         $voyage->refresh();
-        $voyage->load(['adresseDepot', 'adresseRecuperation', 'voyageur.user']);
+        $voyage->load(['adresseDepot', 'adresseRecuperation', 'voyageur.user', 'entreprise', 'agentGp.user', 'agentGp.entreprise']);
 
         return response()->json([
             'status' => 'success',

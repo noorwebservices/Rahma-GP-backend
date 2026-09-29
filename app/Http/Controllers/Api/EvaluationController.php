@@ -41,7 +41,26 @@ class EvaluationController extends Controller
             ], 422);
         }
 
-        $evalueId = $reservation->voyage->voyageur->user_id;
+        $voyage = $reservation->voyage;
+        $evalueId = null;
+
+        if ($voyage && $voyage->voyageur) {
+            $evalueId = $voyage->voyageur->user_id;
+        } elseif ($voyage && $voyage->entreprise) {
+            $evalueId = $voyage->entreprise->gerant_user_id;
+        } elseif ($voyage && $voyage->agentGp) {
+            $evalueId = $voyage->agentGp->user_id;
+        } elseif ($reservation->entreprise) {
+            $evalueId = $reservation->entreprise->gerant_user_id;
+        } elseif ($reservation->agentGp) {
+            $evalueId = $reservation->agentGp->user_id;
+        }
+
+        if (! $evalueId) {
+            return response()->json([
+                'message' => 'Impossible de déterminer l\'utilisateur destinataire de l\'évaluation.',
+            ], 422);
+        }
 
         $evaluation = Evaluation::create([
             'reservation_id' => $reservation->id,
@@ -69,7 +88,20 @@ class EvaluationController extends Controller
         $voyageur = Voyageur::find($voyageur_id);
         $userId = $voyageur ? $voyageur->user_id : $voyageur_id;
 
-        $query = Evaluation::where('evalue_id', $userId)->with(['evaluateur', 'evalue']);
+        $query = Evaluation::query()
+            ->where(function ($q) use ($voyageur_id, $userId) {
+                $q->where('evalue_id', $userId)
+                  ->orWhereHas('reservation', function ($rq) use ($voyageur_id, $userId) {
+                      $rq->where('entreprise_id', $voyageur_id)
+                         ->orWhere('agent_gp_id', $voyageur_id)
+                         ->orWhereHas('voyage', function ($vq) use ($voyageur_id, $userId) {
+                             $vq->where('entreprise_id', $voyageur_id)
+                                ->orWhere('agent_gp_id', $voyageur_id)
+                                ->orWhere('voyageur_id', $voyageur_id);
+                         });
+                  });
+            })
+            ->with(['evaluateur', 'evalue']);
 
         $moyenne = (float) ($query->avg('note') ?? 0);
         $total = $query->count();
@@ -86,12 +118,43 @@ class EvaluationController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $request->user();
+        $query = Evaluation::query();
 
-        $evaluations = Evaluation::where('evaluateur_id', $user->id)
-            ->orWhere('evalue_id', $user->id)
-            ->with(['evaluateur', 'evalue'])
+        if ($user->entreprise) {
+            $entreprise = $user->entreprise;
+            $agentUserIds = $entreprise->agents()->pluck('user_id')->filter()->toArray();
+            $allowedUserIds = array_unique(array_merge([$user->id], $agentUserIds));
+
+            $query->where(function ($q) use ($user, $entreprise, $allowedUserIds) {
+                $q->whereIn('evalue_id', $allowedUserIds)
+                  ->orWhere('evaluateur_id', $user->id)
+                  ->orWhereHas('reservation', function ($rq) use ($entreprise) {
+                      $rq->where('entreprise_id', $entreprise->id)
+                         ->orWhereHas('voyage', function ($vq) use ($entreprise) {
+                             $vq->where('entreprise_id', $entreprise->id);
+                         });
+                  });
+            });
+        } elseif ($user->agentGp) {
+            $agentGp = $user->agentGp;
+            $query->where(function ($q) use ($user, $agentGp) {
+                $q->where('evalue_id', $user->id)
+                  ->orWhere('evaluateur_id', $user->id)
+                  ->orWhereHas('reservation', function ($rq) use ($agentGp) {
+                      $rq->where('agent_gp_id', $agentGp->id)
+                         ->orWhereHas('voyage', function ($vq) use ($agentGp) {
+                             $vq->where('agent_gp_id', $agentGp->id);
+                         });
+                  });
+            });
+        } else {
+            $query->where('evaluateur_id', $user->id)
+                  ->orWhere('evalue_id', $user->id);
+        }
+
+        $evaluations = $query->with(['evaluateur', 'evalue', 'reservation.voyage'])
             ->latest()
-            ->paginate(15);
+            ->paginate(20);
 
         return EvaluationResource::collection($evaluations);
     }
