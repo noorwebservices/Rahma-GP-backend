@@ -79,6 +79,7 @@ class ReservationController extends Controller
         }
 
         $colisPoids = (float) $request->input('colis.poids');
+        $colisQuantite = max(1, (int) $request->input('colis.quantite', 1));
 
         if ($colisPoids > (float) $voyage->capacite_dispo) {
             return response()->json([
@@ -107,7 +108,7 @@ class ReservationController extends Controller
         }
 
         if ($tarifSpecialTrouve !== null && $tarifSpecialTrouve > 0) {
-            $montantTotal = $tarifSpecialTrouve;
+            $montantTotal = $tarifSpecialTrouve * $colisQuantite;
         } else {
             $isElectronic = str_contains($typeLower, 'électronique') ||
                             str_contains($typeLower, 'electronique') ||
@@ -116,16 +117,19 @@ class ReservationController extends Controller
                             str_contains($typeLower, 'high-tech') ||
                             str_contains($typeLower, 'hightech') ||
                             str_contains($typeLower, 'ordinateur') ||
-                            str_contains($typeLower, 'tablette');
+                            str_contains($typeLower, 'tablette') ||
+                            str_contains($typeLower, 'perruque') ||
+                            str_contains($typeLower, 'basket') ||
+                            str_contains($typeLower, 'sac');
 
             if ($isElectronic && $prixObjet > 0) {
-                $montantTotal = $prixObjet;
+                $montantTotal = $prixObjet * $colisQuantite;
             } else {
                 $montantTotal = ceil($colisPoids) * $prixKg;
             }
         }
 
-        $reservation = DB::transaction(function () use ($request, $user, $voyage, $colisPoids, $montantTotal) {
+        $reservation = DB::transaction(function () use ($request, $user, $voyage, $colisPoids, $colisQuantite, $montantTotal) {
             do {
                 $numero = 'RES-'.strtoupper(Str::random(8));
             } while (Reservation::where('numero', $numero)->exists());
@@ -173,6 +177,7 @@ class ReservationController extends Controller
                 'description' => $colisData['description'] ?? null,
                 'valeur_estimee' => $colisData['valeur_estimee'] ?? null,
                 'poids' => $colisPoids,
+                'quantite' => $colisQuantite,
                 'est_fragile' => $colisData['est_fragile'] ?? false,
                 'destinataire_nom' => $colisData['destinataire_nom'],
                 'destinataire_prenom' => $colisData['destinataire_prenom'],

@@ -18,6 +18,7 @@ class ColisResource extends JsonResource
             'description' => $this->description,
             'valeur_estimee' => $this->valeur_estimee !== null ? (float) $this->valeur_estimee : null,
             'poids' => (float) $this->poids,
+            'quantite' => (int) ($this->quantite ?? 1),
             'est_fragile' => (bool) $this->est_fragile,
             'destinataire_nom' => $this->destinataire_nom,
             'destinataire_prenom' => $this->destinataire_prenom,

@@ -29,6 +29,7 @@ class Colis extends Model
     protected function casts(): array
     {
         return [
+            'quantite' => 'integer',
             'est_fragile' => 'boolean',
             'date_depot' => 'datetime',
             'date_livraison' => 'datetime',

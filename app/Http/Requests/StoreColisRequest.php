@@ -19,6 +19,7 @@ class StoreColisRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:1000'],
             'valeur_estimee' => ['nullable', 'numeric', 'min:0'],
             'poids' => ['required', 'numeric', 'gt:0'],
+            'quantite' => ['nullable', 'integer', 'min:1'],
             'est_fragile' => ['nullable', 'boolean'],
             'destinataire_nom' => ['required', 'string', 'max:100'],
             'destinataire_prenom' => ['required', 'string', 'max:100'],

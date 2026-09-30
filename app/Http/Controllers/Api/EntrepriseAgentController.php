@@ -447,7 +447,7 @@ class EntrepriseAgentController extends Controller
             ->where('entreprise_id', $entrepriseId)
             ->findOrFail($id);
 
-        $voyages = \App\Models\Voyage::with(['adresseDepot', 'adresseRecuperation', 'reservations.client.user', 'reservations.colis'])
+        $voyages = \App\Models\Voyage::with(['adresseDepot', 'adresseRecuperation', 'reservations.client.user', 'reservations.colis', 'reservations.evaluations.evaluateur'])
             ->where('agent_gp_id', $agent->id)
             ->latest('date_depart')
             ->get();
@@ -460,16 +460,33 @@ class EntrepriseAgentController extends Controller
         $totalReservations = $allReservations->count();
         $totalColis = $allReservations->whereNotNull('colis')->count();
 
+        $reservationIds = $allReservations->pluck('id')->filter()->toArray();
+        $evaluations = \App\Models\Evaluation::where(function ($q) use ($agent, $reservationIds) {
+            $q->where('evalue_id', $agent->user_id);
+            if (! empty($reservationIds)) {
+                $q->orWhereIn('reservation_id', $reservationIds);
+            }
+        })
+            ->with(['evaluateur', 'reservation.voyage'])
+            ->latest()
+            ->get();
+
+        $avgNote = $evaluations->avg('note');
+        $noteMoyenne = $avgNote ? round((float) $avgNote, 1) : 5.0;
+
         return response()->json([
             'status' => 'success',
             'agent' => $agent,
             'voyages' => $voyages,
+            'evaluations' => $evaluations,
             'stats' => [
                 'total_voyages' => $totalVoyages,
                 'voyages_en_cours' => $voyagesEnCours,
                 'voyages_termines' => $voyagesTermines,
                 'total_reservations' => $totalReservations,
                 'total_colis' => $totalColis,
+                'total_evaluations' => $evaluations->count(),
+                'note_moyenne' => $noteMoyenne,
             ],
         ]);
     }

@@ -207,8 +207,20 @@ class AdminController extends Controller
                 ->get();
         }
 
-        // Obtenir toutes les évaluations / avis reçus par cet utilisateur
-        $evaluationsRecues = Evaluation::where('evalue_id', $user->id)
+        // Obtenir toutes les évaluations / avis reçus par cet utilisateur ou sur ses voyages d'agent GP
+        $agentGpReservationIds = [];
+        if ($user->agentGp) {
+            $agentGpReservationIds = Reservation::whereHas('voyage', function ($q) use ($user) {
+                $q->where('agent_gp_id', $user->agentGp->id);
+            })->pluck('id')->toArray();
+        }
+
+        $evaluationsRecues = Evaluation::where(function ($q) use ($user, $agentGpReservationIds) {
+            $q->where('evalue_id', $user->id);
+            if (! empty($agentGpReservationIds)) {
+                $q->orWhereIn('reservation_id', $agentGpReservationIds);
+            }
+        })
             ->with(['evaluateur', 'reservation.voyage'])
             ->orderBy('created_at', 'desc')
             ->get();

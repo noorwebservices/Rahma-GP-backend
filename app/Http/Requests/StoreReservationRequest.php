@@ -22,6 +22,7 @@ class StoreReservationRequest extends FormRequest
             'colis.description' => ['nullable', 'string', 'max:1000'],
             'colis.valeur_estimee' => ['nullable', 'numeric', 'min:0'],
             'colis.poids' => ['required', 'numeric', 'gt:0'],
+            'colis.quantite' => ['nullable', 'integer', 'min:1'],
             'colis.est_fragile' => ['nullable', 'boolean'],
             'colis.destinataire_nom' => ['required', 'string', 'max:100'],
             'colis.destinataire_prenom' => ['required', 'string', 'max:100'],
